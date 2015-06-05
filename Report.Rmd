@@ -10,3 +10,122 @@ output:
 header-includes: \usepackage{float}
 ---
 
+```{r library and data, echo=FALSE,eval=TRUE}
+library("ggplot2")
+
+
+# Data --------------------------------------------------------------------
+
+ipi <- window(ts(read.table("Data/IPI.dat"), start = 1990, freq = 12), start = 1995)
+
+
+```
+
+
+# Introduction
+
+We decided to work with the IPI serie. It is Monthly Index of Industrial Production in Spain (Base 2010). Source: Instituto Nacional de Estadistica
+www.ine.es Industria, energia y construccioon / Industria / Indices de Produccion Industrial. Base 2010 / General y por destino economico de los bienes. Nacional
+
+```{r serie,echo=FALSE,eval=TRUE}
+plot(ipi,main="IPI",type="o")
+abline(v=1990:2015,col=4,lty=3)
+```
+
+
+# 1. Identification
+
+## a)
+
+First, we check if the variance is constant
+
+```{r year variance,echo=FALSE,eval=TRUE}
+m <- apply(matrix(ipi,nr=12),2,mean)
+v <- apply(matrix(ipi,nr=12),2,var)
+qplot(m,v,xlab="Yearly mean",ylab="Yearly variance ",main="IPI") + 
+  stat_smooth(method="lm", se=FALSE)
+
+```
+
+```{r boxplot,echo=FALSE,eval=TRUE}
+boxplot(ipi~floor(time(ipi)))
+```
+
+It seems that the variance is not constant, we see for example a low variance in 1999 meanwhile it is big in 2008.
+To correct this, we apply a log-transformation to the serie.
+
+Here we can see the new graphs that look better.
+
+
+```{r year variance log,echo=FALSE,eval=TRUE}
+logipi <- log(ipi)
+m <- apply(matrix(logipi,nr=12),2,mean)
+v <- apply(matrix(logipi,nr=12),2,var)
+qplot(m,v,xlab="Yearly mean",ylab="Yearly variance ",main="logIPI") + 
+  stat_smooth(method="lm", se=FALSE)
+
+```
+
+```{r boxplot log,echo=FALSE,eval=TRUE}
+boxplot(logipi~floor(time(logipi)))
+```
+
+Now we check if there is a seasonal pattern.
+
+```{r decompose,echo=FALSE,eval=TRUE}
+plot(decompose(logipi))
+```
+
+```{r monthplot, echo=FALSE,eval=TRUE}
+
+monthplot(logipi)
+```
+
+We see a clear seasonal pattern (month seasonality).
+
+We need to differentiate the serie, one or more time, and then compare the variance to select which one is the best.
+
+```{r diff,echo=FALSE,eval=TRUE}
+d12logipi <- diff(logipi,12)
+
+plot(d12logipi)
+abline(h=0)
+
+d1d12logipi <- diff(d12logipi,1)
+
+plot(d1d12logipi)
+abline(h=0)
+
+var(ipi)
+var(logipi)
+var(d12logipi)
+var(d1d12logipi)
+
+ipi <- d1d12logipi
+```
+
+We select _d1d12logipi_. This is the serie with a log transformation and two differenciation.
+
+## b)
+
+We can plot ACF and PACF of the serie to identify at least two models.
+
+```{r ACF and PACF,echo=FALSE,eval=TRUE}
+par(mfrow=c(1,2))
+acf(ipi, ylim=c(-1,1),col=c(2,rep(1,11)),lag.max=84,main="ACF IPI")
+pacf(ipi, ylim=c(-1,1),col=c(2,rep(1,11)),lag.max=84,main="PACF IPI")
+par(mfrow=c(1,1))
+# AR(3) for the seasonal part. 
+
+par(mfrow=c(1,2))
+acf(ipi, ylim=c(-1,1),col=c(2,rep(1,11)),lag.max=36,main="ACF IPI")
+pacf(ipi, ylim=c(-1,1),col=c(2,rep(1,11)),lag.max=36,main="PACF IPI")
+par(mfrow=c(1,1))
+# AR(6) or AR(2) for the regular part.
+
+# The two possible models are: ARIMA(6,0,0)(3,1,0)12 or ARIMA(2,0,0)(3,1,0)12
+```
+
+For the seasonal part, we can select and **AR(3)**. We see on the PACF that the third lag is significant while the next is not. The ACF is constantly decreasing so we do not select a MA part.
+
+Concerning the regular part, we select two models, **AR(6)** or **AR(2)**.
