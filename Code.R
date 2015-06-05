@@ -7,8 +7,7 @@ library("ggplot2")
 
 ipi <- window(ts(read.table("Data/IPI.dat"), start = 1990, freq = 12), start = 1995)
 
-plot(ipi,main="IPI",type="o")
-abline(v=1990:2015,col=4,lty=3)
+tsggplot(ipi,title="IPI")
 
 
 # Identification ----------------------------------------------------------
@@ -39,13 +38,11 @@ monthplot(logipi)
 
 d12logipi <- diff(logipi,12)
 
-plot(d12logipi)
-abline(h=0)
+tsggplot(d12logipi,"d12logipi") + geom_hline(y=0)
 
 d1d12logipi <- diff(d12logipi,1)
 
-plot(d1d12logipi)
-abline(h=0)
+tsggplot(d1d12logipi) + geom_hline(y=0)
 
 var(ipi)
 var(logipi)
@@ -59,16 +56,8 @@ ipi <- d1d12logipi
 
 ## Question b
 
-par(mfrow=c(1,2))
-acf(ipi, ylim=c(-1,1),col=c(2,rep(1,11)),lag.max=84,main="ACF IPI")
-pacf(ipi, ylim=c(-1,1),col=c(2,rep(1,11)),lag.max=84,main="PACF IPI")
-par(mfrow=c(1,1))
+acfggplot(ipi)
 # AR(3) for the seasonal part. 
-
-par(mfrow=c(1,2))
-acf(ipi, ylim=c(-1,1),col=c(2,rep(1,11)),lag.max=36,main="ACF IPI")
-pacf(ipi, ylim=c(-1,1),col=c(2,rep(1,11)),lag.max=36,main="PACF IPI")
-par(mfrow=c(1,1))
 # AR(6) or AR(2) for the regular part.
 
 # The two possible models are: ARIMA(6,0,0)(3,1,0)12 or ARIMA(2,0,0)(3,1,0)12
