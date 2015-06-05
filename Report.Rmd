@@ -11,8 +11,12 @@ header-includes: \usepackage{float}
 ---
 
 ```{r library and data, echo=FALSE,eval=TRUE}
-library("ggplot2")
 
+install.packages("zoo")
+
+library("ggplot2")
+library("zoo")
+library("gridExtra")
 
 # Data --------------------------------------------------------------------
 
@@ -121,11 +125,63 @@ par(mfrow=c(1,2))
 acf(ipi, ylim=c(-1,1),col=c(2,rep(1,11)),lag.max=36,main="ACF IPI")
 pacf(ipi, ylim=c(-1,1),col=c(2,rep(1,11)),lag.max=36,main="PACF IPI")
 par(mfrow=c(1,1))
-# AR(6) or AR(2) for the regular part.
+# ARMA(3,2) or ARMA(3,5) for the regular part.
 
 # The two possible models are: ARIMA(6,0,0)(3,1,0)12 or ARIMA(2,0,0)(3,1,0)12
 ```
 
-For the seasonal part, we can select and **AR(3)**. We see on the PACF that the third lag is significant while the next is not. The ACF is constantly decreasing so we do not select a MA part.
+For the seasonal part, we can select and **AR(2)**. We see on the PACF that the third lag is significant while the next is not. The ACF is constantly decreasing so we do not select a MA part.
 
-Concerning the regular part, we select two models, **AR(6)** or **AR(2)**.
+Concerning the regular part, we select two models, **ARMA(3,2)** or **ARMA(3,5)**. We counted the significant lags on ACF and PACF. We do not go further than 6 because it is not parsimonious.
+
+# Estimation
+
+
+To identify the model, we compare ACF and PACF of the serie to theorical ACF and PACF
+
+## a) ARMA(3,2)
+
+First with the **ARMA(3,2)**. We see that both ACF and PACF look the same.
+
+```{r estimation,echo=FALSE,eval=TRUE}
+mod3 <- arima(ipi,order=c(6,0,0),seasonal=list(order=c(3,0,2),period=12)) 
+mod4 <- arima(ipi,order=c(6,0,0),seasonal=list(order=c(3,0,5),period=12)) 
+
+
+# Model 3
+acfggplot(ipi)
+par(mfrow=c(1,2))
+plot(ARMAacf(mod3$model$phi,mod3$model$theta,lag.max=36),ylim=c(-1,1), 
+     type="h",xlab="Lag",  ylab="", main="ACF Teoric",col=c(2,rep(1,11)))
+abline(h=0)
+plot(ARMAacf(mod3$model$phi,mod3$model$theta,lag.max=36, pacf=T),ylim=c(-1,1),
+     type="h", xlab="Lag", ylab="", main="PACF Teoric",col=c(2,rep(1,11)))
+abline(h=0)
+par(mfrow=c(1,1))
+# Really good for ACF and PACF.
+```
+
+
+## a) ARMA(3,5)
+
+We do the same for the **ARMA(3,5)**
+
+```{r estimation model 3,echo=FALSE,eval=TRUE}
+# Model 4
+acfggplot(ipi)
+par(mfrow=c(1,2))
+plot(ARMAacf(mod4$model$phi,mod4$model$theta,lag.max=36),ylim=c(-1,1), 
+     type="h",xlab="Lag",  ylab="", main="ACF Teoric",col=c(2,rep(1,11)))
+abline(h=0)
+plot(ARMAacf(mod4$model$phi,mod4$model$theta,lag.max=36, pacf=T),ylim=c(-1,1),
+     type="h", xlab="Lag", ylab="", main="PACF Teoric",col=c(2,rep(1,11)))
+abline(h=0)
+par(mfrow=c(1,1))
+# Really good for ACF and PACF, better than the previous one.
+
+# WE will perform the residuals analysis on the models 3 and 4.
+```
+
+We obtain "good" ACF and PACF, better than the last ones. They are really close to theory.
+
+We will perform the residuals analysis on both model to confirm or not our choice.
