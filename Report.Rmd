@@ -1,0 +1,12 @@
+---
+title: "Time Series - Project"
+author: "Mathieu Marauri"
+output:
+  pdf_document:
+    fig_caption: yes
+    keep_tex: no
+    number_sections: no
+    toc: yes
+header-includes: \usepackage{float}
+---
+
