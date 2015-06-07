@@ -121,9 +121,30 @@ abline(h=0)
 par(mfrow=c(1,1))
 # Really good for ACF and PACF, better than the previous one.
 
-# WE will perform the residuals analysis on the models 3 and 4.
+# We will perform the residuals analysis on the models 3 and 4.
 
 
 # Validation --------------------------------------------------------------
 
+# model1
 
+# Constant variance (homoscedasticity)
+resid <- residplot(mod3)
+scatter <- scatterggplot(mod3)
+grid.arrange(resid,scatter,ncol=2)
+
+# Normal residuals
+qqggplot(mod3)
+
+hist(mod3$residuals,breaks=20,freq=F)
+curve(dnorm(x,mean=mean(resid),sd=sd(resid)),col=2,add=T)
+
+# Independance of the residuals
+acfts(mod3$residuals,"Residuals")
+
+acfts(mod3$residuals,expression(residuals^2))
+
+# White noise test (above 0.05 => wn)
+ljungggplot(mod3)
+
+# goodness of the fit
