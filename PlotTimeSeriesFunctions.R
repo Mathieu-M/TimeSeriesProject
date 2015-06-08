@@ -1,3 +1,5 @@
+# List of plot functions for object of class time series.
+
 # Plot of the time serie --------------------------------------------------
 
 tsggplot <- function(ts,title=NULL){ # plot the time serie.
@@ -73,7 +75,7 @@ residplot <- function(model){
   clim <- c(-ci,ci)
   hline.data <- data.frame(z=clim,type=c("ci","ci"))
   tsggplot(model$residuals) + geom_hline(aes(yintercept=z,linetype=type,
-    colour=type),hline.data) + geom_hline(y=0)
+    colour=type),hline.data) + geom_hline(y=0) + ggtitle("Residuals")
 }
 
 # QQ-plot
@@ -108,18 +110,39 @@ scatterggplot <- function(model){
   xy <- xy.coords(x, y, xlabel, ylabel)
   x <- xy$x
   y <- xy$y
-  ylim = range(y, pred$y,na.rm = TRUE)
   xlab <- xy$xlab
   ylab <- if (is.null(ylab)){
     xy$ylab
   } 
   pred <- loess.smooth(x,y, span=span, degree=degree, family=family, evalution=evaluation)
+  ylim = range(y, pred$y,na.rm = TRUE)
   linh <- as.data.frame(c(list(pred),lpars))
   colnames(linh) <- c("pred","lpars","col")
   x1 <- as.data.frame(x=x,y=y)
   ggplot() + geom_point(data=x1, aes(x=x, y=y)) +  
     geom_line(data=linh,aes(x=pred,y=lpars),colour="red") + ylab(expression(sqrt(abs(residuals)))) + xlab("") + 
     ggtitle("Satter-plot with smooth")
+}
+
+# Ljung-Box test plot
+ljungggplot <- function(model){
+  gof.lag <- 7*frequency(get(model$series))
+  rs <- model$residuals
+  nlag <- gof.lag
+  pval <- numeric(nlag)
+  for (i in 1L:nlag){
+    pval[i] <- Box.test(rs, i, type = "Ljung-Box")$p.value
+  } 
+  df <- data.frame(c(1:nlag),pval)
+  test <- factor(df$pval<0.05)
+  df <- cbind(df,test)
+  colnames(df) <- c("lag","pval","test")
+  ggplot(data=df,aes(x=lag, y=pval)) + geom_point(aes(colour=factor(test))) + 
+    geom_hline(y=0.05,linetype="dashed",colour="blue") + geom_hline(y=0) + 
+    ggtitle("p values for Ljung-Box statistic") + ylab("") + xlab("") + 
+    coord_cartesian(ylim=c(-0.05, 1.05)) + 
+    scale_colour_manual(values=c("TRUE"="red","FALSE"="blue"),name="Value of the p-value",
+                        breaks=c("TRUE","FALSE"),labels=c("<0.05",">0.05"))
 }
 
 
@@ -151,46 +174,33 @@ plotarmaroots <- function(object){
     maroots <- structure(list(roots=numeric(0),type="MA"),class='armaroots')
   }
   rootsma <- as.data.frame(1/maroots$roots)
-  colnames(rootsma) <- c("invmaroots")
+  testma <- factor(Mod(rootsma[[1]])>1)
+  rootsma <- cbind(rootsma,testma)
+  colnames(rootsma) <- c("invmaroots","test")
   rootsar <- as.data.frame(1/arroots$roots)
-  colnames(rootsar) <- c("invarroots")
+  testar <- factor(Mod(rootsar[[1]])>1)
+  rootsar <- cbind(rootsar,testar)
+  colnames(rootsar) <- c("invarroots","test")
   xc <- 0
   yc <- 0
   r <- 1
-  arplot <- ggplot(rootsar,aes(x=Re(invarroots),y=Im(invarroots))) +  geom_point(colour="blue") + 
-    annotate("path",x=xc+r*cos(seq(0,2*pi,length.out=100)),
-             y=yc+r*sin(seq(0,2*pi,length.out=100))) + coord_fixed() + 
-    geom_hline(y=0,linetype="dashed") + geom_vline(x=0,linetype="dashed") + xlab("Real") + 
-    ylab("Imaginary") + ggtitle(paste("The",length(arroots(model)$roots),
-                                      "inverse",maroots$type," roots"))
-  maplot <- ggplot(rootsma,aes(x=Re(invmaroots),y=Im(invmaroots))) +  geom_point(colour="red") + 
-    annotate("path",x=xc+r*cos(seq(0,2*pi,length.out=100)),
-             y=yc+r*sin(seq(0,2*pi,length.out=100))) + coord_fixed() + 
-    geom_hline(y=0,linetype="dashed") + geom_vline(x=0,linetype="dashed") + xlab("Real") + 
-    ylab("Imaginary") + ggtitle(paste("The",length(maroots$roots),
-                                      "inverse ",maroots$type," roots"))
+  arplot <- ggplot(data=rootsar,aes(x=Re(invarroots), y=Im(invarroots))) + 
+    geom_point(aes(colour=factor(testar))) +  
+    ggtitle(paste("The",length(arroots$roots),"inverse",arroots$type," roots")) + 
+    xlab("Real") + ylab("Imaginary") + annotate("path",x=xc+r*cos(seq(0,2*pi,
+                                                                      length.out=100)),y=yc+r*sin(seq(0,2*pi,length.out=100))) + coord_fixed() + 
+    scale_colour_manual(values=c("TRUE"="red","FALSE"="blue"),name="1/Roots",
+                        breaks=c("TRUE","FALSE"),labels=c(">1","<1")) + 
+    geom_hline(y=0,linetype="dashed") + geom_vline(x=0,linetype="dashed") 
+  
+  maplot <- ggplot(data=rootsma,aes(x=Re(invmaroots), y=Im(invmaroots))) + 
+    geom_point(aes(colour=factor(testma))) +  
+    ggtitle(paste("The",length(maroots$roots),"inverse",maroots$type," roots")) + 
+    xlab("Real") + ylab("Imaginary") + annotate("path",x=xc+r*cos(seq(0,2*pi,
+                                                                      length.out=100)),y=yc+r*sin(seq(0,2*pi,length.out=100))) + coord_fixed() + 
+    scale_colour_manual(values=c("TRUE"="red","FALSE"="blue"),name="1/Roots",
+                        breaks=c("TRUE","FALSE"),labels=c(">1","<1")) + 
+    geom_hline(y=0,linetype="dashed") + geom_vline(x=0,linetype="dashed") 
+  
   grid.arrange(arplot,maplot,ncol=2,main="Inverse roots of the charasteristic polynomial")
-}
-
-
-# Ljung-Box plot of the p-values for an arima model -----------------------
-
-ljungggplot <- function(model){
-  gof.lag <- 7*frequency(get(model$series))
-  rs <- model$residuals
-  nlag <- gof.lag
-  pval <- numeric(nlag)
-  for (i in 1L:nlag){
-    pval[i] <- Box.test(rs, i, type = "Ljung-Box")$p.value
-  } 
-  points <- data.frame(c(1L:nlag),pval)
-  factor <- factor(pval<0.05)
-  points <- cbind(points,factor)
-  colnames(points) <- c("lag","pval","test")
-  ggplot(data=points,aes(x=lag, y=pval)) + geom_point(aes(colour=factor(factor))) + 
-    geom_hline(y=0.05,linetype="dashed",colour="blue") + geom_hline(y=0) + 
-    ggtitle("p values for Ljung-Box statistic") + ylab("") + xlab("") + 
-    coord_cartesian(ylim=c(-0.05, 1)) + 
-    scale_colour_manual(values=c("TRUE"="red","FALSE"="blue"),
-                        breaks=c("TRUE","FALSE"),labels=c("<0.05",">0.05"))
 }

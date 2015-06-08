@@ -126,25 +126,102 @@ par(mfrow=c(1,1))
 
 # Validation --------------------------------------------------------------
 
-# model1
+# Question a
+
+# model 3
 
 # Constant variance (homoscedasticity)
 resid <- residplot(mod3)
 scatter <- scatterggplot(mod3)
 grid.arrange(resid,scatter,ncol=2)
+# Pretty good
 
 # Normal residuals
 qqggplot(mod3)
+# Almost ok
 
 hist(mod3$residuals,breaks=20,freq=F)
-curve(dnorm(x,mean=mean(resid),sd=sd(resid)),col=2,add=T)
+curve(dnorm(x,mean=0,sd=sd(mod3$residuals)),col=2,add=T)
+# Almost ok
 
 # Independance of the residuals
 acfts(mod3$residuals,"Residuals")
+# Independant (significant lag are far away)
 
-acfts(mod3$residuals,expression(residuals^2))
+# Volatility
+acfts(mod3$residuals,"Residuals²")
+# No volatility
 
 # White noise test (above 0.05 => wn)
 ljungggplot(mod3)
+# Someissues at the end
 
-# goodness of the fit
+
+# model 4
+
+# Constant variance (homoscedasticity)
+resid <- residplot(mod4)
+scatter <- scatterggplot(mod4)
+grid.arrange(resid,scatter,ncol=2)
+# Some outliers but seem constant
+
+# Normal residuals
+qqggplot(mod4)
+# Almost ok
+
+hist(mod4$residuals,breaks=20,freq=F)
+curve(dnorm(x,mean=0,sd=sd(mod4$residuals)),col=2,add=T)
+# Seem normal
+
+# Independance of the residuals
+acfts(mod4$residuals,"Residuals")
+# Independant
+
+# Volatility
+acfts(mod4$residuals,"Residuals²")
+# No volatility
+
+# White noise test (above 0.05 => wn)
+ljungggplot(mod4)
+# OK
+
+
+# Question b
+
+cat("\nModul of AR Characteristic polynomial Roots: ", 
+    Mod(polyroot(c(1,-mod3$model$phi))),"\n")
+cat("\nModul of MA Characteristic polynomial Roots: ",
+    Mod(polyroot(c(1,mod3$model$theta))),"\n")
+# Stationary and invertible
+
+cat("\nModul of AR Characteristic polynomial Roots: ", 
+    Mod(polyroot(c(1,-mod4$model$phi))),"\n")
+cat("\nModul of MA Characteristic polynomial Roots: ",
+    Mod(polyroot(c(1,mod4$model$theta))),"\n")
+# Stationary and invertible
+
+
+# Question c
+
+ultim=c(2013,12)
+ipi <- window(ts(read.table("Data/IPI.dat"), start = 1990, freq = 12), start = 1995)
+
+ipi2 <- window(ipi,end=ultim)
+logipi2 <- log(ipi2)
+d12logipi2 <- diff(logipi2,12)
+d1d12logipi2 <- diff(d12logipi2,1)
+ipi2 <- d1d12logipi2
+# We look at the same serie without the last 12 observations.
+
+mod3bis <- arima(ipi2,order=c(6,0,0),seasonal=list(order=c(3,0,2),period=12))
+mod4bis <- arima(ipi2,order=c(6,0,0),seasonal=list(order=c(3,0,5),period=12))
+
+mod3$coef
+mod3bis$coef
+# The modelis stable.
+
+mod4$coef
+mod4bis$coef
+# The model is stable
+
+# TODO: take out the non-significant parameters to see if it improves the model.
