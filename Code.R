@@ -58,7 +58,7 @@ ipi <- d1d12logipi
 
 ## Question b
 
-acfggplot(ipi)
+acfts(ipi)
 # ARMA(3,2) or ARMA(3,5) for the seasonal part. 
 # AR(6) or AR(2) for the regular part.
 
@@ -75,50 +75,22 @@ mod4 <- arima(ipi,order=c(6,0,0),seasonal=list(order=c(3,0,5),period=12))
 
 # Model 1
 acfggplot(ipi)
-par(mfrow=c(1,2))
-plot(ARMAacf(mod1$model$phi,mod1$model$theta,lag.max=36),ylim=c(-1,1), 
-     type="h",xlab="Lag",  ylab="", main="ACF Teoric",col=c(2,rep(1,11)))
-abline(h=0)
-plot(ARMAacf(mod1$model$phi,mod1$model$theta,lag.max=36, pacf=T),ylim=c(-1,1),
-     type="h", xlab="Lag", ylab="", main="PACF Teoric",col=c(2,rep(1,11)))
-abline(h=0)
-par(mfrow=c(1,1))
+acfmodel(mod1)
 # Really good for ACF, quite good for PACF.
 
 # Model 2
 acfggplot(ipi)
-par(mfrow=c(1,2))
-plot(ARMAacf(mod2$model$phi,mod2$model$theta,lag.max=36),ylim=c(-1,1), 
-     type="h",xlab="Lag",  ylab="", main="ACF Teoric",col=c(2,rep(1,11)))
-abline(h=0)
-plot(ARMAacf(mod2$model$phi,mod2$model$theta,lag.max=36, pacf=T),ylim=c(-1,1),
-     type="h", xlab="Lag", ylab="", main="PACF Teoric",col=c(2,rep(1,11)))
-abline(h=0)
-par(mfrow=c(1,1))
+acfmodel(mod2)
 # Quite good for ACF and PACF.
 
 # Model 3
 acfggplot(ipi)
-par(mfrow=c(1,2))
-plot(ARMAacf(mod3$model$phi,mod3$model$theta,lag.max=36),ylim=c(-1,1), 
-     type="h",xlab="Lag",  ylab="", main="ACF Teoric",col=c(2,rep(1,11)))
-abline(h=0)
-plot(ARMAacf(mod3$model$phi,mod3$model$theta,lag.max=36, pacf=T),ylim=c(-1,1),
-     type="h", xlab="Lag", ylab="", main="PACF Teoric",col=c(2,rep(1,11)))
-abline(h=0)
-par(mfrow=c(1,1))
+acfmodel(mod3)
 # Really good for ACF and PACF.
 
 # Model 4
 acfggplot(ipi)
-par(mfrow=c(1,2))
-plot(ARMAacf(mod4$model$phi,mod4$model$theta,lag.max=36),ylim=c(-1,1), 
-     type="h",xlab="Lag",  ylab="", main="ACF Teoric",col=c(2,rep(1,11)))
-abline(h=0)
-plot(ARMAacf(mod4$model$phi,mod4$model$theta,lag.max=36, pacf=T),ylim=c(-1,1),
-     type="h", xlab="Lag", ylab="", main="PACF Teoric",col=c(2,rep(1,11)))
-abline(h=0)
-par(mfrow=c(1,1))
+acfmodel(mod4)
 # Really good for ACF and PACF, better than the previous one.
 
 # We will perform the residuals analysis on the models 3 and 4.
@@ -225,3 +197,7 @@ mod4bis$coef
 # The model is stable
 
 # TODO: take out the non-significant parameters to see if it improves the model.
+
+mod3.adjust <- arima(ipi,order=c(6,0,0),seasonal=list(order=c(3,0,2),period=12),
+                     fixed=c(NA,NA,0,NA,NA,NA,NA,NA,NA,0,NA,NA)) 
+# The aic is lower with all the paremeters.
