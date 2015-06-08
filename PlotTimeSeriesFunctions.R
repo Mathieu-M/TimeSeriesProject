@@ -94,7 +94,8 @@ qqggplot <- function(model){
 
 # Square root of the absolute residuals
 scatterggplot <- function(model){
-  x <- sqrt(abs(model$residuals))
+  resid <- model$residuals
+  x <- sqrt(abs(resid))
   y <- NULL
   lpars=list(col=2)
   span = 2/3
@@ -113,12 +114,12 @@ scatterggplot <- function(model){
   xlab <- xy$xlab
   ylab <- if (is.null(ylab)){
     xy$ylab
-  } 
+  }
+  x1 <- data.frame(x=x,y=y)
   pred <- loess.smooth(x,y, span=span, degree=degree, family=family, evalution=evaluation)
   ylim = range(y, pred$y,na.rm = TRUE)
   linh <- as.data.frame(c(list(pred),lpars))
   colnames(linh) <- c("pred","lpars","col")
-  x1 <- as.data.frame(x=x,y=y)
   ggplot() + geom_point(data=x1, aes(x=x, y=y)) +  
     geom_line(data=linh,aes(x=pred,y=lpars),colour="red") + ylab(expression(sqrt(abs(residuals)))) + xlab("") + 
     ggtitle("Satter-plot with smooth")

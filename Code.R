@@ -74,22 +74,22 @@ mod3 <- arima(ipi,order=c(6,0,0),seasonal=list(order=c(3,0,2),period=12))
 mod4 <- arima(ipi,order=c(6,0,0),seasonal=list(order=c(3,0,5),period=12)) 
 
 # Model 1
-acfggplot(ipi)
+acfts(ipi)
 acfmodel(mod1)
 # Really good for ACF, quite good for PACF.
 
 # Model 2
-acfggplot(ipi)
+acfts(ipi)
 acfmodel(mod2)
 # Quite good for ACF and PACF.
 
 # Model 3
-acfggplot(ipi)
+acfts(ipi)
 acfmodel(mod3)
 # Really good for ACF and PACF.
 
 # Model 4
-acfggplot(ipi)
+acfts(ipi)
 acfmodel(mod4)
 # Really good for ACF and PACF, better than the previous one.
 
@@ -196,8 +196,46 @@ mod4$coef
 mod4bis$coef
 # The model is stable
 
-# TODO: take out the non-significant parameters to see if it improves the model.
+# We can to take out the non-significant parameters to see if it improves the model. (estimates/se<2)
 
 mod3.adjust <- arima(ipi,order=c(6,0,0),seasonal=list(order=c(3,0,2),period=12),
                      fixed=c(NA,NA,0,NA,NA,NA,NA,NA,NA,0,NA,NA)) 
 # The aic is lower with all the paremeters.
+
+mod4.adjust <- arima(ipi,order=c(6,0,0),seasonal=list(order=c(3,0,5),period=12),
+                     fixed=c(NA,NA,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)) 
+# The aic is better with all the parameters.
+
+# Prediction for model 3.
+
+pred <- predict(mod3bis,n.ahead=12)
+
+pr <- ts(c(tail(ipi2,1),pred$pred),start=ultim,freq=12)
+se<-ts(c(0,pred$se),start=ultim,freq=12)
+
+#Intervals
+tl<-ts(exp(pr-1.96*se),start=ultim,freq=12)
+tu<-ts(exp(pr+1.96*se),start=ultim,freq=12)
+pr<-ts(exp(pr),start=ultim,freq=12)
+
+ts.plot(ipi,tl,tu,pr,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=c(2011,2015),type="o",main="Model ARIMA(6,0,0)(3,0,2)12")
+abline(v=2010+0:5,lty=3,col=4)
+
+# Prevision for the model 4
+
+pred <- predict(mod4bis,n.ahead=12)
+
+pr <- window(diffinv(pred$pred,12,xi=window(ipi,start=ultim+c(-1,1),end=ultim+c(0,0))),start=ultim)
+model <- mod4bis$model
+varc <- mod4bis$sigma
+ma <- ARMAtoMA(ar=mod4bis$phi,ma=mod4bis$theta,lag.max=11)
+se <- c(0,sqrt((cumsum(c(1,ma))^2)*varc))
+
+
+#Intervals
+tl <- ts(pr-1.96*se,start=ultim,freq=12)
+tu <- ts(pr+1.96*se,start=ultim,freq=12)
+pr < -ts(pr,start=ultim,freq=12)
+
+ts.plot(ipi,tl,tu,pr,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=c(2011,2015),type="o",main="Model ARIMA(6,0,0)(3,0,5)12")
+abline(v=2010+0:5,lty=3,col=4)
