@@ -213,7 +213,7 @@ tspredggplot <- function(ts,pred,upperb,lowerb,title=NULL){ # plot the time seri
   # ts must be a monthly times serie. A title can be add, must be character.
   ts.data.frame <- data.frame(date=as.Date(as.yearmon(time(ipi))),as.matrix(ipi))
   colnames(ts.data.frame) <- c("time","value")
-  pred.data.frame <- data.frame(date=as.Date(as.yearmon(time(pr3))),as.matrix(pr3))
+  pred.data.frame <- data.frame(date=as.Date(as.yearmon(time(pred))),as.matrix(pred))
   colnames(pred.data.frame) <- c("time","pred")
   upperb.data.frame <- data.frame(date=as.Date(as.yearmon(time(upperb))),as.matrix(upperb))
   colnames(upperb.data.frame) <- c("time","upperb")

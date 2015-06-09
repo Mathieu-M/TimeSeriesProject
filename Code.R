@@ -217,7 +217,9 @@ length(Mod(polyroot(c(1,mod4$model$theta)))[Mod(polyroot(c(1,mod4$model$theta)))
 # Stability
 
 # We look at the same serie without the last 12 observations.
-ultim=c(2013,12)
+ultim <- c(2013,12)
+pdq <- c(6,1,0)
+PDQ <- c(1,1,2)
 
 ipi2 <- window(ipi,end=ultim)
 logipi2 <- log(ipi2)
@@ -237,31 +239,25 @@ mod4bis2$coef
 
 # Prediction for model 3.
 
-pdq <- c(6,1,0)
-PDQ <- c(1,1,2)
-
 pred3 <- predict(mod3bis2,n.ahead=12)
-pr3 <- ts(c(tail(logipi2,1),pred$pred),start=ultim,freq=12)
+pr3 <- ts(c(tail(logipi2,1),pred3$pred),start=ultim,freq=12)
 se3 <- ts(c(0,pred$se),start=ultim,freq=12)
 
-tl3 <- ts(exp(pr-1.96*se),start=ultim,freq=12)
-tu3 <- ts(exp(pr+1.96*se),start=ultim,freq=12)
-pr3 <- ts(exp(pr),start=ultim,freq=12)
+tl3 <- ts(exp(pr3-1.96*se3),start=ultim,freq=12)
+tu3 <- ts(exp(pr3+1.96*se3),start=ultim,freq=12)
+pr3 <- ts(exp(pr3),start=ultim,freq=12)
 
 tspredggplot(ipi,pred=pr3,upperb=tu3,lowerb=tl3,title="Predictions for model 3.")
 
 # Prediction for model 4.
 
-pdq <- c(6,1,0)
-PDQ <- c(3,1,5)
-
 pred4 <- predict(mod4bis2,n.ahead=12)
-pr4 <- ts(c(tail(logipi2,1),pred$pred),start=ultim,freq=12)
-se4 <- ts(c(0,pred$se),start=ultim,freq=12)
+pr4 <- ts(c(tail(logipi2,1),pred4$pred),start=ultim,freq=12)
+se4 <- ts(c(0,pred4$se),start=ultim,freq=12)
 
-tl4 <- ts(exp(pr-1.96*se),start=ultim,freq=12)
-tu4 <- ts(exp(pr+1.96*se),start=ultim,freq=12)
-pr4 <- ts(exp(pr),start=ultim,freq=12)
+tl4 <- ts(exp(pr4-1.96*se4),start=ultim,freq=12)
+tu4 <- ts(exp(pr4+1.96*se4),start=ultim,freq=12)
+pr4 <- ts(exp(pr4),start=ultim,freq=12)
 
 tspredggplot(ipi,pred=pr4,upperb=tu4,lowerb=tl4,title="Predictions for model 4.")
 
@@ -275,8 +271,8 @@ mod3bis2.EAM <- sum(abs(obs-pr3)/obs)/12
 mod4bis2.EQM <- sqrt(sum(((obs-pr4)/obs)^2)/12)
 mod4bis2.EAM <- sum(abs(obs-pr4)/obs)/12
 
-mod3bis2.EQM-mod4bis2.EQM>0
-mod3bis2.EAM-mod4bis2.EAM>0
+mod3bis2.EQM-mod4bis2.EQM<0
+mod3bis2.EAM-mod4bis2.EAM<0
 
 # Model 3 is better based on these two indicators.
 
@@ -288,9 +284,6 @@ mod3bis2.EAM-mod4bis2.EAM>0
 ipi1 <- window(ipi,end=ultim+c(1,0))
 logipi1 <- log(ipi1)
 
-pdq <- c(6,1,0)
-PDQ <- c(1,1,2)
-
 pred <- predict(mod3bis,n.ahead=12)
 pr <- ts(c(tail(logipi1,1),pred$pred),start=ultim+c(1,0),freq=12)
 se <- ts(c(0,pred$se),start=ultim+c(1,0),freq=12)
@@ -299,4 +292,4 @@ tl1<-ts(exp(pr-1.96*se),start=ultim+c(1,0),freq=12)
 tu1<-ts(exp(pr+1.96*se),start=ultim+c(1,0),freq=12)
 pr1<-ts(exp(pr),start=ultim+c(1,0),freq=12)
 
-tspredggplot(ipi,pred=pr1,upperb=tu1,lowerb=tl1,title="Predictions for model 3.")
+tspredggplot(ipi1,pred=pr1,upperb=tu1,lowerb=tl1,title="Predictions for model 3.")
