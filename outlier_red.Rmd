@@ -1,0 +1,98 @@
+---
+title: "Untitled"
+author: "Maxime Jurado & Mathieu Marauri"
+date: "Tuesday, June 09, 2015"
+output: pdf_document pdf_document:
+    fig_caption: yes
+    keep_tex: no
+    number_sections: no
+    toc: yes
+header-includes: \usepackage{float}
+---
+
+```{r library and data, echo=FALSE,eval=TRUE}
+
+library("ggplot2")
+library("zoo")
+library("gridExtra")
+```
+
+
+# 5. Outlier treatment
+
+## a)
+
+In this section we perform an outlier treatment. For that we first apply an automatic detection of the outliers. Here are the results
+
+```{r outliers}
+mod.atip3=outdetec(mod3bis,dif=c(1,12),crit=2.6,LS=T)
+
+atipics3=mod.atip3$atip[order(mod.atip3$atip[,1]),]
+meses=c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+
+data.frame(atipics3,Fecha=paste(meses[(atipics3[,1]-1)%%12+1],start(logipi)[1]+((atipics3[,1]-1)%/%12)),perc.Obs=exp(atipics3[,3])*100)
+
+```
+
+Note that _AO_ stands for additive outlier and _LS_ for level shift. Additive outliers means that it only affects one point. Instead of observing the predicted point on the linearized serie we observe another point. In level shift there is a break in the serie that is not corrected. The effect is permanent. 
+
+We can see that all the additive outliers are in April, it is maybe due to the years with easter in March instead of April.
+We observe 2 level shift in 2008, probably due to the financial crisis because the shift is negative.
+The last level shift is in July 2009 and has a positive effect, maybe the start of the recovery of the spanish production.
+
+## b)
+
+We can start comparing the observed and the linearized serie (without the outliers)
+
+```{r obsvslin,fig.pos="H",fig.align='left',fig.cap="Observed vs linearized serie. \\label{obsvslin}"}
+logipi.lin=lineal(logipi,mod.atip3$atip) # original serie and table of outliers
+ipi.lin=exp(logipi.lin)
+
+plot(ipi)
+lines(ipi.lin,col=2) #red without the outliers
+```
+
+We can see that the linearized serie is different at the end of the period, after 2008, and that it is above the observed serie.
+
+In the following graph we can see the effects of the outliers on the serie of the logarithm
+```{r effectout,fig.pos="H",fig.align='left',fig.cap="Effects of the outliers. \\label{effectout}"}
+plot(logipi-logipi.lin)
+```
+
+Here we have the ACF and PACF of the linearized serie (two differenciation of the serie of the logarithm, as for the model we select in \ref{Identification}).
+
+```{r ACF PACF lin,fig.pos="H",fig.align='left',fig.cap="ACF and PACF of the linearized serie. \\label{predlin}"}
+acfts(d1d12logipi.lin)
+```
+ After validation, we decided to choose an $ARIMA(6,1,0)(1,1,2)_12$
+ 
+ Now we use the truncated serie to get predicion and compare them to the previous predictions.
+ 
+ 
+```{r Predictions for model lineal,fig.pos="H",fig.align='left',fig.cap="Predictions for linearized truncated model. \\label{pred}"}
+tspredggplot(ipi.lin,pred=pr1,upperb=tu1,lowerb=tl1,title=" ")
+```
+
+We can compare this graph to
+
+```{r Predictions for model ,fig.pos="H",fig.align='left',fig.cap="Predictions for model 3. \\label{ACFPACFlin}"}
+tspredggplot(ipi1,pred=pr3,upperb=tu3,lowerb=tl3,title=" ")
+
+```
+
+To have a clear comparison, we can compute the Mean square prediction error and thee Mean square absolute prediction error. We test is the MSPE and the MSAPE are lower in the model 3 than in the linearized one.
+
+```{r,echo=FALSE,eval=TRUE}
+obs <- window(ipi,start=ultim)
+
+mod3bis2.EQM <- sqrt(sum(((obs-pr3)/obs)^2)/12)
+mod3bis2.EAM <- sum(abs(obs-pr3)/obs)/12
+
+mod3bis2.lin.EQM <- sqrt(sum(((obs-pr1)/obs)^2)/12)
+mod3bis2.lin.EAM <- sum(abs(obs-pr1)/obs)/12
+
+mod3bis2.EQM-mod3bis2.lin.EQM<0
+mod3bis2.EAM-mod3bis2.lin.EAM<0
+```
+
+The result is TRUE so it means that the model 3 is better for prediction.
