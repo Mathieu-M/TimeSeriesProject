@@ -323,8 +323,8 @@ print(xtable(atipics,align=c("c","c","c","c","c"),digits=2,
              caption="Summary of the outliers."))
 
 # Linearized serie vs serie
-logipi.lin=lineal(logipi,mod.atip3$atip)
-ipi.lin=exp(logipi.lin)
+logipi.lin <- lineal(logipi,mod.atip3$atip)
+ipi.lin <- exp(logipi.lin)
 ts.data.frame <- data.frame(date=as.Date(as.yearmon(time(ipi))),
                             as.matrix(ipi))
 colnames(ts.data.frame) <- c("time","value")
@@ -332,16 +332,18 @@ tsl.data.frame <- data.frame(date=as.Date(as.yearmon(time(ipi.lin))),
                              as.matrix(ipi.lin))
 colnames(tsl.data.frame) <- c("time","valuel")
 ggplot(data=ts.data.frame, mapping=aes(x=time, y=value)) + geom_line() + 
-  geom_line(data=tsl.data.frame,aes(x=time,y=valuel),colour="red")
-ggtitle(title) + theme(panel.grid.major.y=element_blank(),
+  geom_line(data=tsl.data.frame,aes(x=time,y=valuel),colour="red") + 
+  theme(panel.grid.major.y=element_blank(),
                        panel.grid.minor.y=element_blank()) + 
   ylab("Values of the serie")
 
 # Effect of the outliers
 tsggplot(logipi-logipi.lin)
 
-## Question 2
+## Question b
 
+d12logipi.lin <- diff(logipi.lin,12)
+d1d12logipi.lin <- diff(d12logipi.lin,1)
 acfts(d1d12logipi.lin)
 
 mod3bis.lin <- arima(logipi,order=c(6,1,0),seasonal=list(order=c(1,1,2),
