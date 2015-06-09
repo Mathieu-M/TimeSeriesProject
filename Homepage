@@ -1,0 +1,50 @@
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+
+
+\begin{titlepage}
+
+\mbox{}
+\begin{center}
+\Huge{Time Series - Final Project}
+\end{center}
+\vspace*{1 in}
+
+\vspace*{2cm}\mbox{}
+
+\begin{center}
+\includegraphics[width=12cm]{logo_upc.jpg}
+\end{center}
+\smallskip
+\begin{center}
+\Large
+\begin{tabular}{c}
+\sc Facultat de Matem\`atiques i Estad\'istica\\
+\sc M\`aster en Estad\'istica i Investigaci\'o Operativa \\
+
+\end{tabular}
+\normalsize
+\end{center}
+\smallskip
+
+\vspace{3cm}
+
+\large
+  \begin{flushright}
+    \vspace*{1cm}\mbox{}
+$
+\begin{array}{lcl}
+\mbox{Author} &:& \mbox{Maxime Jurado and Mathieu Marauri}\\
+\end{array}
+$
+\end{flushright}
+
+\vspace*{0.5 in}
+
+\begin{center}
+Barcelona, Spain
+\end{center}
+\normalsize
+\end{titlepage}
+
+\newpage
