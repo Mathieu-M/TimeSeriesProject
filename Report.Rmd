@@ -10,135 +10,144 @@ output:
 header-includes: \usepackage{float}
 ---
 
-```{r library and data, echo=FALSE,eval=TRUE}
-
+```{r initial_chunk, echo = FALSE, warning = FALSE, message = FALSE}
+library("knitr")
 library("ggplot2")
-library("zoo")
+library("xtable")
+library("dplyr")
 library("gridExtra")
+library("zoo")
+source('PlotTimeSeriesFunctions.R')
+opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE)
+options("xtable.comment" = FALSE)
+options("xtable.table.placement" = "H")
+```
 
-# Data --------------------------------------------------------------------
 
+```{r data}
 ipi <- window(ts(read.table("Data/IPI.dat"), start = 1990, freq = 12), start = 1995)
-
-
 ```
 
 
 # Introduction
+For this project we decided to work on the IPI serie. It is a monthly index of industrial production in Spain. The aim of this study is to fit a model to the serie in order to make previsions. During this analysis the outliers will be studied, if some exist, in order to adjust the model fitted.
 
-We decided to work with the IPI serie. It is Monthly Index of Industrial Production in Spain (Base 2010). Source: Instituto Nacional de Estadistica
-www.ine.es Industria, energia y construccioon / Industria / Indices de Produccion Industrial. Base 2010 / General y por destino economico de los bienes. Nacional
+Figure \ref{plotserie} shows the IPI serie.
 
-```{r serie,echo=FALSE,eval=TRUE}
-plot(ipi,main="IPI",type="o")
-abline(v=1990:2015,col=4,lty=3)
+```{r serie,fig.cap="IPI serie. \\label{plotserie}", fig.pos = "H"}
+tsggplot(ipi)
 ```
 
 
-# 1. Identification
+# Identification
 
-## a)
+## Question a
 
-First, we check if the variance is constant
+The first thing that needs to be done is to check whether the variance is constant or not. Several graphs help answer that. 
 
-```{r year variance,echo=FALSE,eval=TRUE}
+Figure \ref{varmeanipi} and \ref{boxipi} show the evolution of the variance depending on the mean.
+```{r constantvariance,fig.pos="H",fig.align='left',fig.cap="Evolution of the variance relatively to the mean for the original serie. \\label{varmeanipi}"}
 m <- apply(matrix(ipi,nr=12),2,mean)
 v <- apply(matrix(ipi,nr=12),2,var)
-qplot(m,v,xlab="Yearly mean",ylab="Yearly variance ",main="IPI") + 
-  stat_smooth(method="lm", se=FALSE)
-
+qplot(m,v,xlab="Yearly mean",ylab="Yearly variance") + stat_smooth(method="lm", se=FALSE)
 ```
 
-```{r boxplot,echo=FALSE,eval=TRUE}
+One can observe here that the linear relation between the variance and the mean does not have a null slope. It means that the variance is higher whenever the mean is higher.
+```{r boxplotipi,fig.pos="H",fig.align='left',fig.cap="Boxplot of the ipi for each year. \\label{boxipi}"}
 boxplot(ipi~floor(time(ipi)))
 ```
 
-It seems that the variance is not constant, we see for example a low variance in 1999 meanwhile it is big in 2008.
-To correct this, we apply a log-transformation to the serie.
+One could observe a low variance in 2013 meanwhile in 2006 one could observe a high one. The variance of the original serie does not seem to be constant.
 
-Here we can see the new graphs that look better.
+To correct this, a log-transformation is applied to the serie.
 
-
-```{r year variance log,echo=FALSE,eval=TRUE}
+The previous graphs are done again in Figure \ref{varmeanlogipi} and \ref{boxlogipi}. The transformation enhances the plots in a way that now one can consider that the variance is constant.
+```{r constantvariancelog,fig.pos="H",fig.align='left',fig.cap="Evolution of the variance relatively to the mean for the log of the serie. \\label{varmeanlogipi}"}
 logipi <- log(ipi)
 m <- apply(matrix(logipi,nr=12),2,mean)
 v <- apply(matrix(logipi,nr=12),2,var)
-qplot(m,v,xlab="Yearly mean",ylab="Yearly variance ",main="logIPI") + 
+qplot(m,v,xlab="Yearly mean",ylab="Yearly variance ") + 
   stat_smooth(method="lm", se=FALSE)
-
 ```
 
-```{r boxplot log,echo=FALSE,eval=TRUE}
+```{r boxplotlogipi,fig.pos="H",fig.align='left',fig.cap="Boxplot of log(ipi) for each year. \\label{boxlogipi}"}
 boxplot(logipi~floor(time(logipi)))
 ```
 
-Now we check if there is a seasonal pattern.
-
-```{r decompose,echo=FALSE,eval=TRUE}
+Now that the serie has been transformed so that it has a constant mean, one has to check if there is seasonal pattern. The following plot (Figure \ref{monthplot}) helps find a potential one.
+```{r monthplot,fig.pos="H",fig.align='left',fig.cap="Monthplot of log(ipi). \\label{monthplot}"}
 plot(decompose(logipi))
 ```
 
-```{r monthplot, echo=FALSE,eval=TRUE}
+It appears that the serie has a annual pattern. Hence a differentiation is needed. 
 
-monthplot(logipi)
-```
+Then the serie is to have a constant mean. By plotting the transformed serie one can have an idea whether the mean is constant or not. If not the serie needs to be differentiate again. In Figure \ref{plotd12logipi} the logarithm of the serie, after differentatiation is plotted.
 
-We see a clear seasonal pattern (month seasonality).
 
-We need to differentiate the serie, one or more time, and then compare the variance to select which one is the best.
-
-```{r diff,echo=FALSE,eval=TRUE}
+```{r d12logipi,fig.pos="H",fig.align='left',fig.cap="log(ipi) differentiate 12 times (seasonnality). \\label{plotd12logipi}"}
 d12logipi <- diff(logipi,12)
+tsggplot(d12logipi,"d12logipi") + geom_hline(y=0)
+```
 
-plot(d12logipi)
-abline(h=0)
-
+One could say that the mean is not constant so the serie is differentiate another time. The serie is plotted again (Figure \ref{plotd1d12logipi}).
+```{r d1d12logipi,fig.pos="H",fig.align='left',fig.cap="log(ipi) differentiate 12 times the 1 time. \\label{plotd1d12logipi}"}
 d1d12logipi <- diff(d12logipi,1)
-
-plot(d1d12logipi)
-abline(h=0)
-
-var(ipi)
-var(logipi)
-var(d12logipi)
-var(d1d12logipi)
-
-ipi <- d1d12logipi
+tsggplot(d1d12logipi) + geom_hline(y=0)
 ```
 
-We select _d1d12logipi_. This is the serie with a log transformation and two differentiation. From now on, this serie will be called ipi.
+Now the mean seems to be constant. 
 
-## b)
+In order to select which transformation is actually the best the variance of the transformed series are compared. The smallest variance is prefered. Table 1 shows the results.
 
-To identify some possible model, we plot the ACF and PACF of the serie
+\begin{table}[ht]
+\centering
+\begin{tabular}{cc}
+  \hline
+serie & variance \\ 
+  \hline
+IPI & 255.5872 \\ 
+  log(IPI) & 0.0240 \\ 
+  $(1-B^12)log(IPI)$ & 0.0050 \\ 
+  $(1-B)(1-B^12)log(IPI)$ & 0.0045 \\ 
+   \hline
+\end{tabular}
+\caption{Variances of each transformed serie.} 
+\end{table}
 
-```{r ACF and PACF ipi,echo=FALSE,eval=TRUE}
-source("PlotTimeSeriesFunctions.R")
+The last serie is selected. It is the serie with a log transformation and two differentiation. One for the seasonality and one to have a constant mean. The serie can be writen $(1-B)(1-B^12)log(IPI)$.
+
+For now on the transformed serie will be referred simply as teh serie.
+
+## Question b
+
+In order to identify some possible models, the Auto-Correlation Function and the Partial ACF of the serie are plotted. Figure \ref{acfipi}.
+
+```{r acfipi,fig.pos="H",fig.align='left',fig.cap="ACF and PACF of the serie. \\label{acfipi}"}
 acfts(ipi)
-# ARMA(3,2) or ARMA(3,5) for the seasonal part. 
-# AR(6) or AR(2) for the regular part.
-
-# The two possible models are: ARIMA(6,0,0)(3,1,2)12 or ARIMA(6,0,0)(3,1,5)12
-# or ARIMA(2,0,0)(3,1,2)12 or ARIMA(2,0,0)(3,1,5)12
 ```
 
-For the seasonal part (red lags) we can opt for an ARMA(3,2) or an ARMA(3,5). As for the regular part, we can choose between an AR(2) or an AR(6).
+The red lags are used to identify the seasonal part. One can consider an ARMA(3,2) or an ARMA(3,5) looking for the last significant lag. The ACF gives the MA part nd the PACF the AR part. For the regular part, an AR(2) or an AR(6) can be choosen.
 
-We finally have 4 models:
+Finally 4 models are possible:
 
-* $ARIMA(2,0,0)(3,1,2)_12$ Model 1
-* $ARIMA(2,0,0)(3,1,5)_12$ Model 2
-* $ARIMA(6,0,0)(3,1,2)_12$ Model 3
-* $ARIMA(6,0,0)(3,1,5)_12$ Model 4
+* Model 1: $ARIMA(2,0,0)(3,1,2)_12$
+* Model 2: $ARIMA(2,0,0)(3,1,5)_12$ 
+* Model 3: $ARIMA(6,0,0)(3,1,2)_12$ 
+* Model 4: $ARIMA(6,0,0)(3,1,5)_12$ 
 
-# 2. Estimation
+# Estimation
 
-```{r,echo=FALSE,eval=TRUE}
+```{r models}
 mod1 <- arima(ipi,order=c(2,0,0),seasonal=list(order=c(3,0,2),period=12))
 mod2 <- arima(ipi,order=c(2,0,0),seasonal=list(order=c(3,0,5),period=12))
 mod3 <- arima(ipi,order=c(6,0,0),seasonal=list(order=c(3,0,2),period=12)) 
 mod4 <- arima(ipi,order=c(6,0,0),seasonal=list(order=c(3,0,5),period=12)) 
 ```
+
+Before estimating the models one can try to see if the intercept is needed or not in the models. To do so the ratio $\frac {estimate}{standard error}$ is computed. If it is lower than 2 then the coefficient can be set to zero. In every models the intercept was not significant so it was set to zero. The resulting models have a lower AIC. This confirms that the models are better without the intercept. 
+
+Now the ACF and PACF of each model are plotted and a comparison is made with the ACF and PACF of the serie. This makes possibles eliminate 2 models.
+
 
 
 We can study those 4 models one by one to select the bests among them before doing a complete analysis of the residual.
