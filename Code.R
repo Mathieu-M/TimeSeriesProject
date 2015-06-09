@@ -59,7 +59,7 @@ ipi.t <- d1d12logipi
 
 ## Question b
 
-acfts(ipi)
+acfts(ipi.t)
 # ARMA(3,2) or ARMA(3,5) for the seasonal part. 
 # AR(6) or AR(2) for the regular part.
 
