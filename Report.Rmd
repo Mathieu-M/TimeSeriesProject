@@ -18,6 +18,7 @@ library("dplyr")
 library("gridExtra")
 library("zoo")
 source('PlotTimeSeriesFunctions.R')
+source("outlierTreatment.r")
 opts_chunk$set(echo = FALSE, eval = TRUE, warning = FALSE, message = FALSE)
 options("xtable.comment" = FALSE)
 options("xtable.table.placement" = "H")
@@ -81,7 +82,7 @@ plot(decompose(logipi))
 
 It appears that the serie has a annual pattern. Hence a differentiation is needed. 
 
-Then the serie is to have a constant mean. By plotting the transformed serie one can have an idea whether the mean is constant or not. If not the serie needs to be differentiate again. In Figure \ref{plotd12logipi} the logarithm of the serie, after differentatiation is plotted.
+Then the serie is to have a constant mean. By plotting the transformed serie one can have an idea whether the mean is constant or not. If not the serie needs to be differentiate again. In Figure \ref{plotd12logipi} the logarithm of the serie, after differentiation is plotted.
 
 
 ```{r d12logipi,fig.pos="H",fig.align='left',fig.cap="log(ipi) differentiate 12 times (seasonnality). \\label{plotd12logipi}"}
@@ -97,7 +98,7 @@ tsggplot(d1d12logipi) + geom_hline(y=0)
 
 Now the mean seems to be constant. 
 
-In order to select which transformation is actually the best the variance of the transformed series are compared. The smallest variance is prefered. Table 1 shows the results.
+In order to select which transformation is actually the best the variance of the transformed series are compared. The smallest variance is preferred. Table 1 shows the results.
 
 \begin{table}[ht]
 \centering
@@ -114,7 +115,7 @@ IPI & 255.5872 \\
 \caption{Variances of each transformed serie.} 
 \end{table}
 
-The last serie is selected. It is the serie with a log transformation and two differentiation. One for the seasonality and one to have a constant mean. The serie can be writen $(1-B)(1-B^12)log(IPI)$.
+The last serie is selected. It is the serie with a log transformation and two differentiation. One for the seasonality and one to have a constant mean. The serie can be written $(1-B)(1-B^12)log(IPI)$.
 
 For now on the transformed serie will be referred simply as teh serie.
 
@@ -138,234 +139,356 @@ Finally 4 models are possible:
 # Estimation
 
 ```{r models}
-mod1 <- arima(ipi,order=c(2,0,0),seasonal=list(order=c(3,0,2),period=12))
-mod2 <- arima(ipi,order=c(2,0,0),seasonal=list(order=c(3,0,5),period=12))
-mod3 <- arima(ipi,order=c(6,0,0),seasonal=list(order=c(3,0,2),period=12)) 
-mod4 <- arima(ipi,order=c(6,0,0),seasonal=list(order=c(3,0,5),period=12)) 
+ipi.t <- d1d12logipi
+mod1bis <- arima(logipi,order=c(2,1,0),seasonal=list(order=c(3,1,2),period=12))
+mod2bis <- arima(logipi,order=c(2,1,0),seasonal=list(order=c(3,1,5),period=12))
+mod3bis <- arima(logipi,order=c(6,1,0),seasonal=list(order=c(3,1,2),period=12)) 
+mod4bis <- arima(logipi,order=c(6,1,0),seasonal=list(order=c(3,1,5),period=12))  
 ```
 
 Before estimating the models one can try to see if the intercept is needed or not in the models. To do so the ratio $\frac {estimate}{standard error}$ is computed. If it is lower than 2 then the coefficient can be set to zero. In every models the intercept was not significant so it was set to zero. The resulting models have a lower AIC. This confirms that the models are better without the intercept. 
 
-Now the ACF and PACF of each model are plotted and a comparison is made with the ACF and PACF of the serie. This makes possibles eliminate 2 models.
+Now the ACF and PACF of each model are plotted and a comparison is made with the ACF and PACF of the serie. This makes possible eliminate 2 models. A residuals analysis will be performed later. 
 
+As an example the comparison between model 3 and the serie is presented in Figure \ref{mod3}. The other graphs are in the section \nameref{appendix}.
 
-
-We can study those 4 models one by one to select the bests among them before doing a complete analysis of the residual.
-
-## Model 1 $ARIMA(2,0,0)(3,1,2)_12$ 
-
-```{r ACF PACF mod1,echo=FALSE,eval=TRUE}
-acfggplot(ipi)
-acfmodel(mod1)
-# Really good for ACF, quite good for PACF.
+Model 3: $ARIMA(6,0,0)(3,1,2)_12$. 
+```{r mod3,fig.pos="H",fig.align='left',fig.cap="ACF and PACF of the serie and the model 3. \\label{mod3}"}
+acfts(ipi.t)
+acfmodel(mod3bis)
 ```
 
-We compare the ACF and PACF of the model 1 to those from our serie ipi. We can see that the ACF is very close whereas the PACF is not so good.
+By comparing the red lags, the one for the seasonality, it appears that the model and the serie have the same signifiant lag with the same sign. The same is true for the first 12 lags that correspond to the regular part. One can conclude that model 3 is a good representation of the serie. 
 
-## Model 2 $ARIMA(2,0,0)(3,1,5)_12$
+Such similitudes were also observed for the model 4. Not so much for the models 1 and 2.
 
-```{r ACF PACF mode2,echo=FALSE,eval=TRUE}
-acfggplot(ipi)
-acfmodel(mod2)
-# Quite good for ACF and PACF.
+Therefore the complete analysis of residuals will be performed only on model 3 and 4.
 
-```
+After performing this analysis the models 3 and 4 were adjusted based on the significance of each coefficient. The unsignificant coefficients were removed and the models were compared using the AIC. The model 4 did not change but the model 3 did. The coefficients for the ar3, ar4 and sma1 were fixed to 0 and the new model was an $ARIMA(6,1,0)(1,1,2)_{12}$ for the logarithm of the serie.
 
-Here both ACF and PACF are quite good but not as close as we want.
+# Validation
 
-## Model 3 $ARIMA(6,0,0)(3,1,2)_12$
+## Question a
 
-```{r ACF PACF mod3,echo=FALSE,eval=TRUE}
-acfggplot(ipi)
-acfmodel(mod3)
-# Really good for ACF and PACF.
-```
+The analysis of the residuals is a way to validate the model. The residuals must verify the following hypotheses:
 
-For the model 3, we see really good ACF and PACF, close to ipi. It seems that it is one of the best model until now.
+* They have the same variance. Homoscedasticity.
+* They must follow a normal distribution.
+* They have to be independant.
 
-## Model 4 $ARIMA(6,0,0)(3,1,5)_12$
+These hypotheses will be assessed graphically. 
 
-```{r ACF PACF mod4,echo=FALSE,eval=TRUE}
-acfggplot(ipi)
-acfmodel(mod4)
-# Really good for ACF and PACF, better than the previous one.
-```
+### Model 3: $ARIMA(6,1,0)(1,1,2)_12$
 
-Also for the model 4, the ACF and PACF are really good, even better than for model 3.
-
-To conclude this selection, we will perform a complete analysis of residuals on model 3 and 4.
-
-# 3. Validation
-
-## a)
-
-### Model 3 $ARIMA(6,0,0)(3,1,2)_12$
-
-First we can check the homoscedasticity with the following graph
-```{r var mod3,echo=FALSE,eval=TRUE}
-# Constant variance (homoscedasticity)
-resid <- residplot(mod3)
-scatter<-
+We start by checking the homoscedasticity. To do so the residuals are plotted along with a scatter plot with a smooth. Figure \ref{homo3}.
+```{r homo3,fig.pos="H",fig.align='left',fig.cap="Residuals and scatter plot of the residuals. \\label{homo3}"}
+mod3bis <- arima(logipi,order=c(6,1,0),seasonal=list(order=c(1,1,2),period=12),
+                          fixed=c(NA,NA,0,0,NA,NA,NA,0,NA))
+resid <- residplot(mod3bis)
+scatter <- scatterggplot(mod3bis)
 grid.arrange(resid,scatter,ncol=2)
-# Pretty good
 ```
 
-The homoscedasticity is verified here, residuals do not go far outside the confidence bounds and the scatter plot is good too.
+Residuals do not go far outside the confidence bounds except for some values (outliers?). The scatter plot does not show any tendancy even if the smooth is not completely straight. The homoscedasticity is verified.
 
-We have to check the normality of residuals
-```{r norm resid mod3,echo=FALSE,eval=TRUE}
-# Normal residuals
-qqggplot(mod3)
-# Almost ok
-hist(mod3$residuals,breaks=20,freq=F)
-curve(dnorm(x,mean=0,sd=sd(mod3$residuals)),col=2,add=T)
-# Almost ok
+Now the normality of the residuals is to be checked. To do so a qqplot and the histogram of the residuals along with the density of a normal are plotted. Figure \ref{norm3} 
+```{r norm3,fig.pos="H",fig.align='left',fig.cap="QQ-plot and histogram of the residuals. \\label{norm3}"}
+qqggplot(mod3bis)
+hist(mod3bis$residuals,breaks=20,freq=F)
+curve(dnorm(x,mean=0,sd=sd(mod3bis$residuals)),col=2,add=T)
 ```
 
-The normality is almost verified since we have quite heavy tails in this QQ-plot and histogram upper than the curve.
+The normality can be considered verified even if we have quite heavy tails in the QQ-plot and some parts of the histogram are upper than the curve.
 
-Here we check the independence of residuals
-```{r indep resid mod3,echo=FALSE,eval=TRUE}
-# Independance of the residuals
-acfts(mod3$residuals,"Residuals")
-# Independant (significant lag are far away)
+Here we check the independence of residuals. Figure \ref{indep3}.
+```{r indep3,fig.pos="H",fig.align='left',fig.cap="ACF and PACF of the residuals. \\label{indep3}"}
+acfts(mod3bis$residuals)
 ```
 
-The residuals are independent. Indeed significant lag are far away from the origin.
+The residuals are independent. Indeed significant lags are far away from the origin.
 
-The next step is to check for volatility
-```{r volatility mod3,echo=FALSE,eval=TRUE}
-# Volatility
-acfts(mod3$residuals,"Residuals²")
-# No volatility
+The next step is to check for volatility. Figure \ref{volatility3}.
+```{r volatility3,fig.pos="H",fig.align='left',fig.cap="ACF and PACF of the residuals². \\label{volatility3}"}
+acfts(mod3bis$residuals)
 ```
 
 There is no volatility because the lags from the ACF and PACF of the squared residuals are not outside the confidence bounds, or far away from origin.
 
-The last step is to perform a white noise test
-```{r wn test mod3,echo=FALSE,eval=TRUE}
-# White noise test (above 0.05 => wn)
-ljungggplot(mod3)
-# Someissues at the end
+The last step is to perform a white noise test. To do so a Ljung-Box is performed. The resulting p-values are presented in Figure \ref{ljung3}.
+```{r ljung3,fig.pos="H",fig.align='left',fig.cap="P-values of the Ljung-Box tests. \\label{ljung3}"}
+ljungggplot(mod3bis)
 ```
-We can see some problems at the end of the plot.
+
+The fact that some p-values are below 0.05 and so that the null hypothesis of residuals being a white noise is rejected may be due to the fact that the residuals were maybe not really normally distributed.
 
 ### Model 4 $ARIMA(6,0,0)(3,1,5)_12$
 
-Now we perform the same complete analysis of residuals for the model4
-
-```{r var mod4,echo=FALSE,eval=TRUE}
-# Constant variance (homoscedasticity)
-resid <- residplot(mod4)
-scatter <- scatterggplot(mod4)
-grid.arrange(resid,scatter,ncol=2)
-# Some outliers but seem constant
+The same analysis was performed on the model 4. Figures are presented in section \nameref{mod4appendix}. Mainly the same results are obtained except for the white noise tests. As one can see in Figure \ref{ljung4} no p-values are below 0.05. 
+```{r ljung4,fig.pos="H",fig.align='left',fig.cap="P-values of the Ljung-Box tests. \\label{ljung4}"}
+ljungggplot(mod4bis)
 ```
 
-The variance seems constant even if there are some outliers.
+As a consequence model 3 seems to be a bit better than model 3. Besides it has a lower AIC (-857 vs -819).
 
-```{r norm resid mod4,echo=FALSE,eval=TRUE}
-# Normal residuals
-qqggplot(mod4)
-# Almost ok
+## Question b
 
-hist(mod4$residuals,breaks=20,freq=F)
-curve(dnorm(x,mean=0,sd=sd(mod4$residuals)),col=2,add=T)
-# Seem normal
+A model is stationary and invertible if the AR characteristic polynomial roots and the MA characteristic polynomial roots respectively are greater than 1.
 
-```
+These roots were computed for the models 3 and 4 and they all were greater than 1 so the two models are invertible and stationary. 
 
-The residuals seem normal, the tails are not heavy and the curve quite match the histogram.
+## Question c
 
+To check if the model is stable, the coefficients of the serie and those from the serie without the 12 last observation are compared. If they are mostly the same then the model is stable.
 
-```{r indep resid mod4,echo=FALSE,eval=TRUE}
-# Independance of the residuals
-acfts(mod4$residuals,"Residuals")
-# Independant
-```
-
-The residuals are independent, there is no significant lag even far from the origin.
-
-```{r volatility mod4,echo=FALSE,eval=TRUE}
-
-# Volatility
-acfts(mod4$residuals,"Residuals²")
-# No volatility
-```
-
-There is no volatility as there is no significant lag in this plot of ACF and PACF of squared residuals.
-
-```{r wn test mod4,echo=FALSE,eval=TRUE}
-# White noise test (above 0.05 => wn)
-ljungggplot(mod4)
-# OK
-```
-
-The test confirm that we have white noises in the model4.
-
-## b)
-
-To see if the model is stationary and invertible, we check is the roots of the polynoms of AR and MA part are greater than 1.
-
-### Model 3 $ARIMA(6,0,0)(3,1,2)_12$
-
-```{r stat and invert mod3,echo=FALSE,eval=TRUE}
-cat("\nModul of AR Characteristic polynomial Roots: ", 
-    Mod(polyroot(c(1,-mod3$model$phi))),"\n")
-cat("\nModul of MA Characteristic polynomial Roots: ",
-    Mod(polyroot(c(1,mod3$model$theta))),"\n")
-# Stationary and invertible
-```
-
-From those values we can conclude that the model 3 is stationary and invertible.
-
-### Model 4 $ARIMA(6,0,0)(3,1,5)_12$
-
-```{r}
-cat("\nModul of AR Characteristic polynomial Roots: ", 
-    Mod(polyroot(c(1,-mod4$model$phi))),"\n")
-cat("\nModul of MA Characteristic polynomial Roots: ",
-    Mod(polyroot(c(1,mod4$model$theta))),"\n")
-# Stationary and invertible
-
-```
-
-Also here the model 4 is stationary and invertible.
-
-
-## c)
-
-To check if the model is stable, we compare the coefficient of the serie and those from the serie without the 12 last observation.
-
-```{r stability ,echo=FALSE,eval=TRUE}
+Table 2 presents the results for the model 3.
+```{r stability3,results='asis'}
 ultim=c(2013,12)
 ipi <- window(ts(read.table("Data/IPI.dat"), start = 1990, freq = 12), start = 1995)
-
 ipi2 <- window(ipi,end=ultim)
 logipi2 <- log(ipi2)
 d12logipi2 <- diff(logipi2,12)
 d1d12logipi2 <- diff(d12logipi2,1)
 ipi2 <- d1d12logipi2
-# We look at the same serie without the last 12 observations.
-
-mod3bis <- arima(ipi2,order=c(6,0,0),seasonal=list(order=c(3,0,2),period=12))
-mod4bis <- arima(ipi2,order=c(6,0,0),seasonal=list(order=c(3,0,5),period=12))
+mod3bis2 <- arima(logipi2,order=pdq,seasonal=list(order=PDQ,period=12),fixed=c(NA,NA,0,0,NA,NA,NA,0,NA))
+coef3 <- data.frame(mod3bis$coef,mod3bis2$coef)
+colnames(coef3) <- c("Complete model","Truncate model")
+print(xtable(coef3,align=c("c","c","c"),digits=4,
+             caption="Comparison of the coefficients for model 3"))
 ```
 
-### Model 3 $ARIMA(6,0,0)(3,1,2)_12$
+Since the coefficients are the same (mainly) the model 3 can be considered stable. 
 
-```{r stability mod3,echo=FALSE,eval=TRUE}
-mod3$coef
-mod3bis$coef
-# The modelis stable.
+Table 4 presents the results for the model 4.
+```{r stability4,results='asis'}
+mod4bis2 <- arima(logipi2,order=c(6,1,0),seasonal=list(order=c(3,1,5),period=12))
+coef4 <- data.frame(mod4bis$coef,mod4bis2$coef)
+colnames(coef4) <- c("Complete model","Truncate model")
+print(xtable(coef4,align=c("c","c","c"),digits=4,
+             caption="Comparison of the coefficients for model 4"))
 ```
-Note that _mod3bis_ stands for the serie without the 12 last observations. The coefficient are not different, we can conclude that the model 3 is stable
 
-### Model 4 $ARIMA(6,0,0)(3,1,5)_12$
+As before the coefficients are the same so the model 4 is stable.
 
-```{r stability mod4,echo=FALSE,eval=TRUE}
-mod4$coef
-mod4bis$coef
-# The modelis stable.
+Based on the truncate models forecasts were performed for the last year. It allows to check if the predictions are good or not since the values for the last year are available. Figure \ref{pred3} and \ref{pred4} shows the predictions made respectively with model 3 and 4 along with the confidence interval.
+```{r pred3,fig.pos="H",fig.align='left',fig.cap="Predictions and confidence interval for the truncate model 3. \\label{pred3}"}
+pred3 <- predict(mod3bis2,n.ahead=12)
+pr3 <- ts(c(tail(logipi2,1),pred3$pred),start=ultim,freq=12)
+se3 <- ts(c(0,pred$se),start=ultim,freq=12)
+tl3 <- ts(exp(pr3-1.96*se3),start=ultim,freq=12)
+tu3 <- ts(exp(pr3+1.96*se3),start=ultim,freq=12)
+pr3 <- ts(exp(pr3),start=ultim,freq=12)
+tspredggplot(ipi,pred=pr3,upperb=tu3,lowerb=tl3)
 ```
-Also here the model 4 is stable.
+
+```{r pred4,fig.pos="H",fig.align='left',fig.cap="Predictions and confidence interval for the truncate model 4. \\label{pred4}"}
+pred4 <- predict(mod4bis2,n.ahead=12)
+pr4 <- ts(c(tail(logipi2,1),pred4$pred),start=ultim,freq=12)
+se4 <- ts(c(0,pred4$se),start=ultim,freq=12)
+tl4 <- ts(exp(pr4-1.96*se4),start=ultim,freq=12)
+tu4 <- ts(exp(pr4+1.96*se4),start=ultim,freq=12)
+pr4 <- ts(exp(pr4),start=ultim,freq=12)
+tspredggplot(ipi,pred=pr4,upperb=tu4,lowerb=tl4,title="Predictions for model 4.")
+```
+
+## Question d
+\label{Questiond}
+
+In order to compare the model for the prediction the Mean Square Prediction Error and the Mean Square Absolute Prediction Error are computed for the two models. The lower the values are, the better the model is. 
+
+* $MSPE = \sqrt {\frac {\sum (\frac {(obs-pred)}{obs})^2}{12}}$.
+* $MSAPE = \sqrt {\frac {\sum \frac {|obs-pred|}{|obs|}}{12}}$
+
+The model 3 has lower values than model 4. Therefore even if model 4 is better to describe the serie, model 3 is better for the forecast.
+
+# Predictions
+
+Since model 3 is better for predictions (see section \nameref{Questiond}) the long term forecasts will be done with this model. 
+
+Figure \ref{perdl3} displays the predicted values for the serie for the year 2015 along with the confidnce interval. 
+```{r predl3,fig.pos="H",fig.align='left',fig.cap="Predictions and confidence interval for the  model 3. \\label{predl3}"}
+ipi1 <- window(ipi,end=ultim+c(1,0))
+logipi1 <- log(ipi1)
+pred <- predict(mod3bis,n.ahead=12)
+pr <- ts(c(tail(logipi1,1),pred$pred),start=ultim+c(1,0),freq=12)
+se <- ts(c(0,pred$se),start=ultim+c(1,0),freq=12)
+tl1<-ts(exp(pr-1.96*se),start=ultim+c(1,0),freq=12)
+tu1<-ts(exp(pr+1.96*se),start=ultim+c(1,0),freq=12)
+pr1<-ts(exp(pr),start=ultim+c(1,0),freq=12)
+tspredggplot(ipi1,pred=pr1,upperb=tu1,lowerb=tl1)
+```
+
+# Outliers treatment
+
+## Question a
+
+In this section outliers are analized. For that an automatic detection of the outliers is applied. Table 3 presents the results.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{cccc}
+  \hline
+Observations & Kind & Date & Evolution \\ 
+  \hline
+ 28 & AO & Apr 1997 & 109.08 \\ 
+  62 & TC & Feb 2000 & 105.33 \\ 
+  88 & AO & Apr 2002 & 107.43 \\ 
+  124 & AO & Apr 2005 & 106.99 \\ 
+  159 & LS & Mar 2008 & 94.52 \\ 
+  160 & AO & Apr 2008 & 108.35 \\ 
+  166 & LS & Oct 2008 & 95.32 \\ 
+ 168 & LS & Dec 2008 & 91.41 \\ 
+  175 & LS & Jul 2009 & 107.38 \\ 
+  181 & AO & Jan 2010 & 94.41 \\ 
+  220 & LS & Apr 2013 & 104.96 \\ 
+   \hline
+\end{tabular}
+\caption{Summary of the outliers.} 
+\end{table}
+
+Note that _AO_ stands for additive outlier and _LS_ for level shift. Additive outliers means that it only affects one point. Instead of observing the predicted point on the linearized serie we observe another point. In level shift there is a break in the serie that is not corrected. The effect is permanent. 
+
+We can see that most of the additive outliers are in April, it is maybe due to the years with easter in March instead of April.
+
+2 level shift can be observed in 2008. They are probably due to the financial crisis since the shift is negative.
+
+The last level shift is in July 2009 and has a positive effect. It may be explain by the recovery of the spanish production.
+
+## Question b
+
+Before comparing the predictions of the linearized serie versus the serie the wo serie can be compared and a model must be fitted on the linear serie. 
+
+Figure \ref{obsvslin} shows the two series plotted on the same graph.
+```{r obsvslin,fig.pos="H",fig.align='left',fig.cap="Observed vs linearized serie. The linearized serie is in red. \\label{obsvslin}"}
+logipi.lin=lineal(logipi,mod.atip3$atip)
+ipi.lin=exp(logipi.lin)
+ts.data.frame <- data.frame(date=as.Date(as.yearmon(time(ipi))),as.matrix(ipi))
+colnames(ts.data.frame) <- c("time","value")
+tsl.data.frame <- data.frame(date=as.Date(as.yearmon(time(ipi.lin))),as.matrix(ipi.lin))
+colnames(tsl.data.frame) <- c("time","valuel")
+ggplot(data=ts.data.frame, mapping=aes(x=time, y=value)) + geom_line() + 
+  geom_line(data=tsl.data.frame,aes(x=time,y=valuel),colour="red")
+  ggtitle(title) + theme(panel.grid.major.y=element_blank(),
+                         panel.grid.minor.y=element_blank()) + ylab("Values of the serie")
+```
+
+One can see that the linearized serie is different at the end of the period, after 2008, and that it is above the observed serie.
+
+In the following graph the effects of the outliers on the serie of the logarithm are plotted. Figure \ref{effectout}
+```{r effectout,fig.pos="H",fig.align='left',fig.cap="Effects of the outliers. \\label{effectout}"}
+tsggplot(logipi-logipi.lin)
+```
+
+One can clearly see the different Additive Outliers (only a pick), the Transitive Change for the yeaar 2000 and the several Level Shifts after 2008.
+
+In order to fit a model on the linearized serie the ACF and PACF are plotted in Figure \ref{acflin}. They are done on the two times differentiated serie of the logarithm.
+```{r ACF PACF lin,fig.pos="H",fig.align='left',fig.cap="ACF and PACF of the linearized serie. \\label{acflin}"}
+acfts(d1d12logipi.lin)
+```
+
+After validation, we decided to choose an $ARIMA(6,1,0)(1,1,2)_12$
+ 
+As it was done before the truncated serie is used to get predicion. This way a comparison with the predictions of the model 3 fot the all serie is possible. 
+
+Figure \ref{predlin} shows the predictionsa and the confidence interval obtained with the linearized model.
+```{r Predictions for model lineal,fig.pos="H",fig.align='left',fig.cap="Predictions and confidence interval obtained with the linearized truncated model. \\label{predlin}"}
+mod3bis.lin <- arima(logipi,order=c(6,1,0),seasonal=list(order=c(1,1,2),period=12),fixed=c(NA,NA,0,0,NA,NA,NA,0,NA))
+ultim <- c(2013,12)
+pdq <- c(6,1,0)
+PDQ <- c(1,1,2)
+ipi2.lin <- window(ipi.lin,end=ultim)
+logipi2.lin <- log(ipi2.lin)
+mod3bis2.lin <- arima(logipi2.lin,order=pdq,seasonal=list(order=PDQ,period=12),fixed=c(NA,NA,0,0,NA,NA,NA,0,NA))
+pred <- predict(mod3bis2.lin,n.ahead=12)
+pr <- ts(c(tail(logipi2.lin,1),pred$pred),start=ultim,freq=12)
+se <- ts(c(0,pred$se),start=ultim,freq=12)
+tl1<-ts(exp(pr-1.96*se),start=ultim,freq=12)
+tu1<-ts(exp(pr+1.96*se),start=ultim,freq=12)
+pr1<-ts(exp(pr),start=ultim,freq=12)
+tspredggplot(ipi1,pred=pr1,upperb=tu1,lowerb=tl1)
+```
+
+One can notice that the observed values are always in the confidene interval (except at the beginning). 
+
+To have a clear comparison, one can compute the Mean Square Prediction Error and the Mean Square Absolute Prediction Error. To compare the predictions of each model the values of these indicators are compared. As it was done previously small values are preferred.
+
+It appears that the model obtained with the whole serie is better for prediction. It can be explained by the fact that there are a lot of level shift at the end and the linearized serie is above the true one.
+
+Figure \ref{predllin} shows the long term predictions made by the model obtained with the linearized serie.
+```{r prellin,fig.pos="H",fig.align='left',fig.cap="Long term predictions and confidence interval obtained with the linearized truncated model. \\label{predllin}"}
+ipi1.lin <- window(ipi.lin,end=ultim+c(1,0))
+logipi1.lin <- log(ipi1.lin)
+pred.lin <- predict(mod3bis.lin,n.ahead=12)
+pr.lin <- ts(c(tail(logipi1.lin,1),pred.lin$pred),start=ultim+c(1,0),freq=12)
+se.lin <- ts(c(0,pred.lin$se),start=ultim+c(1,0),freq=12)
+tl1.lin<-ts(exp(pr.lin-1.96*se.lin),start=ultim+c(1,0),freq=12)
+tu1.lin<-ts(exp(pr.lin+1.96*se.lin),start=ultim+c(1,0),freq=12)
+pr1.lin<-ts(exp(pr.lin),start=ultim+c(1,0),freq=12)
+tspredggplot(ipi,pred=pr1.lin,upperb=tu1.lin,lowerb=tl1.lin)
+```
+
+
+# Appendix
+
+## Comparison of ACF and PACF between models and the serie.
+
+### Model 1: $ARIMA(2,0,0)(3,1,2)_12$ 
+
+```{r mod1,fig.pos="H",fig.align='left',fig.cap="ACF and PACF of the serie and the model 1."}
+acfts(ipi.t)
+acfmodel(mod1bis)
+```
+
+
+### Model 2: $ARIMA(2,0,0)(3,1,5)_12$
+
+```{r mod2,fig.pos="H",fig.align='left',fig.cap="ACF and PACF of the serie and the model 2."}
+acfts(ipi.t)
+acfmodel(mod2bis)
+```
+
+
+### Model 3: $ARIMA(6,0,0)(3,1,2)_12$
+
+```{r mod3,fig.pos="H",fig.align='left',fig.cap="ACF and PACF of the serie and the model 3."}
+acfts(ipi.t)
+acfmodel(mod3bis)
+```
+
+
+### Model 4: $ARIMA(6,0,0)(3,1,5)_12$
+
+```{r mod4,fig.pos="H",fig.align='left',fig.cap="ACF and PACF of the serie and the model 4."}
+acfts(ipi.t)
+acfmodel(mod4bis)
+```
+
+## Residuals analysis of model 4.
+
+
+```{r homo4,fig.pos="H",fig.align='left',fig.cap="Residuals and scatter plot of the residuals. \\label{homo4}"}
+resid <- residplot(mod4bis)
+scatter <- scatterggplot(mod4bis)
+grid.arrange(resid,scatter,ncol=2)
+```
+
+
+```{r norm4,fig.pos="H",fig.align='left',fig.cap="QQ-plot and histogram of the residuals. \\label{norm4}"}
+qqggplot(mod4bis)
+hist(mod4bis$residuals,breaks=20,freq=F)
+curve(dnorm(x,mean=0,sd=sd(mod4bis$residuals)),col=2,add=T)
+```
+
+
+```{r indep4,fig.pos="H",fig.align='left',fig.cap="ACF and PACF of the residuals. \\label{indep4}"}
+acfts(mod4bis$residuals)
+```
+
+
+```{r volatility4,fig.pos="H",fig.align='left',fig.cap="ACF and PACF of the residuals². \\label{volatility4}"}
+acfts(mod4bis$residuals)
+```
+
+
+```{r ljung4,fig.pos="H",fig.align='left',fig.cap="P-values of the Ljung-Box tests. \\label{ljung4}"}
+ljungggplot(mod4bis)
+```
