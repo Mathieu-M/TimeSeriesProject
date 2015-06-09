@@ -12,8 +12,6 @@ header-includes: \usepackage{float}
 
 ```{r library and data, echo=FALSE,eval=TRUE}
 
-install.packages("zoo")
-
 library("ggplot2")
 library("zoo")
 library("gridExtra")
@@ -108,80 +106,257 @@ var(d1d12logipi)
 ipi <- d1d12logipi
 ```
 
-We select _d1d12logipi_. This is the serie with a log transformation and two differenciation.
+We select _d1d12logipi_. This is the serie with a log transformation and two differentiation. From now on, this serie will be called ipi.
 
 ## b)
 
-We can plot ACF and PACF of the serie to identify at least two models.
+To identify some possible model, we plot the ACF and PACF of the serie
 
-```{r ACF and PACF,echo=FALSE,eval=TRUE}
-par(mfrow=c(1,2))
-acf(ipi, ylim=c(-1,1),col=c(2,rep(1,11)),lag.max=84,main="ACF IPI")
-pacf(ipi, ylim=c(-1,1),col=c(2,rep(1,11)),lag.max=84,main="PACF IPI")
-par(mfrow=c(1,1))
-# AR(3) for the seasonal part. 
+```{r ACF and PACF ipi,echo=FALSE,eval=TRUE}
+source("PlotTimeSeriesFunctions.R")
+acfts(ipi)
+# ARMA(3,2) or ARMA(3,5) for the seasonal part. 
+# AR(6) or AR(2) for the regular part.
 
-par(mfrow=c(1,2))
-acf(ipi, ylim=c(-1,1),col=c(2,rep(1,11)),lag.max=36,main="ACF IPI")
-pacf(ipi, ylim=c(-1,1),col=c(2,rep(1,11)),lag.max=36,main="PACF IPI")
-par(mfrow=c(1,1))
-# ARMA(3,2) or ARMA(3,5) for the regular part.
-
-# The two possible models are: ARIMA(6,0,0)(3,1,0)12 or ARIMA(2,0,0)(3,1,0)12
+# The two possible models are: ARIMA(6,0,0)(3,1,2)12 or ARIMA(6,0,0)(3,1,5)12
+# or ARIMA(2,0,0)(3,1,2)12 or ARIMA(2,0,0)(3,1,5)12
 ```
 
-For the seasonal part, we can select and **AR(2)**. We see on the PACF that the third lag is significant while the next is not. The ACF is constantly decreasing so we do not select a MA part.
+For the seasonal part (red lags) we can opt for an ARMA(3,2) or an ARMA(3,5). As for the regular part, we can choose between an AR(2) or an AR(6).
 
-Concerning the regular part, we select two models, **ARMA(3,2)** or **ARMA(3,5)**. We counted the significant lags on ACF and PACF. We do not go further than 6 because it is not parsimonious.
+We finally have 4 models:
 
-# Estimation
+* $ARIMA(2,0,0)(3,1,2)_12$ Model 1
+* $ARIMA(2,0,0)(3,1,5)_12$ Model 2
+* $ARIMA(6,0,0)(3,1,2)_12$ Model 3
+* $ARIMA(6,0,0)(3,1,5)_12$ Model 4
 
+# 2. Estimation
 
-To identify the model, we compare ACF and PACF of the serie to theorical ACF and PACF
-
-## a) ARMA(3,2)
-
-First with the **ARMA(3,2)**. We see that both ACF and PACF look the same.
-
-```{r estimation,echo=FALSE,eval=TRUE}
+```{r,echo=FALSE,eval=TRUE}
+mod1 <- arima(ipi,order=c(2,0,0),seasonal=list(order=c(3,0,2),period=12))
+mod2 <- arima(ipi,order=c(2,0,0),seasonal=list(order=c(3,0,5),period=12))
 mod3 <- arima(ipi,order=c(6,0,0),seasonal=list(order=c(3,0,2),period=12)) 
 mod4 <- arima(ipi,order=c(6,0,0),seasonal=list(order=c(3,0,5),period=12)) 
+```
 
 
-# Model 3
+We can study those 4 models one by one to select the bests among them before doing a complete analysis of the residual.
+
+## Model 1 $ARIMA(2,0,0)(3,1,2)_12$ 
+
+```{r ACF PACF mod1,echo=FALSE,eval=TRUE}
 acfggplot(ipi)
-par(mfrow=c(1,2))
-plot(ARMAacf(mod3$model$phi,mod3$model$theta,lag.max=36),ylim=c(-1,1), 
-     type="h",xlab="Lag",  ylab="", main="ACF Teoric",col=c(2,rep(1,11)))
-abline(h=0)
-plot(ARMAacf(mod3$model$phi,mod3$model$theta,lag.max=36, pacf=T),ylim=c(-1,1),
-     type="h", xlab="Lag", ylab="", main="PACF Teoric",col=c(2,rep(1,11)))
-abline(h=0)
-par(mfrow=c(1,1))
+acfmodel(mod1)
+# Really good for ACF, quite good for PACF.
+```
+
+We compare the ACF and PACF of the model 1 to those from our serie ipi. We can see that the ACF is very close whereas the PACF is not so good.
+
+## Model 2 $ARIMA(2,0,0)(3,1,5)_12$
+
+```{r ACF PACF mode2,echo=FALSE,eval=TRUE}
+acfggplot(ipi)
+acfmodel(mod2)
+# Quite good for ACF and PACF.
+
+```
+
+Here both ACF and PACF are quite good but not as close as we want.
+
+## Model 3 $ARIMA(6,0,0)(3,1,2)_12$
+
+```{r ACF PACF mod3,echo=FALSE,eval=TRUE}
+acfggplot(ipi)
+acfmodel(mod3)
 # Really good for ACF and PACF.
 ```
 
+For the model 3, we see really good ACF and PACF, close to ipi. It seems that it is one of the best model until now.
 
-## a) ARMA(3,5)
+## Model 4 $ARIMA(6,0,0)(3,1,5)_12$
 
-We do the same for the **ARMA(3,5)**
-
-```{r estimation model 3,echo=FALSE,eval=TRUE}
-# Model 4
+```{r ACF PACF mod4,echo=FALSE,eval=TRUE}
 acfggplot(ipi)
-par(mfrow=c(1,2))
-plot(ARMAacf(mod4$model$phi,mod4$model$theta,lag.max=36),ylim=c(-1,1), 
-     type="h",xlab="Lag",  ylab="", main="ACF Teoric",col=c(2,rep(1,11)))
-abline(h=0)
-plot(ARMAacf(mod4$model$phi,mod4$model$theta,lag.max=36, pacf=T),ylim=c(-1,1),
-     type="h", xlab="Lag", ylab="", main="PACF Teoric",col=c(2,rep(1,11)))
-abline(h=0)
-par(mfrow=c(1,1))
+acfmodel(mod4)
 # Really good for ACF and PACF, better than the previous one.
-
-# WE will perform the residuals analysis on the models 3 and 4.
 ```
 
-We obtain "good" ACF and PACF, better than the last ones. They are really close to theory.
+Also for the model 4, the ACF and PACF are really good, even better than for model 3.
 
-We will perform the residuals analysis on both model to confirm or not our choice.
+To conclude this selection, we will perform a complete analysis of residuals on model 3 and 4.
+
+# 3. Validation
+
+## a)
+
+### Model 3 $ARIMA(6,0,0)(3,1,2)_12$
+
+First we can check the homoscedasticity with the following graph
+```{r var mod3,echo=FALSE,eval=TRUE}
+# Constant variance (homoscedasticity)
+resid <- residplot(mod3)
+scatter<-
+grid.arrange(resid,scatter,ncol=2)
+# Pretty good
+```
+
+The homoscedasticity is verified here, residuals do not go far outside the confidence bounds and the scatter plot is good too.
+
+We have to check the normality of residuals
+```{r norm resid mod3,echo=FALSE,eval=TRUE}
+# Normal residuals
+qqggplot(mod3)
+# Almost ok
+hist(mod3$residuals,breaks=20,freq=F)
+curve(dnorm(x,mean=0,sd=sd(mod3$residuals)),col=2,add=T)
+# Almost ok
+```
+
+The normality is almost verified since we have quite heavy tails in this QQ-plot and histogram upper than the curve.
+
+Here we check the independence of residuals
+```{r indep resid mod3,echo=FALSE,eval=TRUE}
+# Independance of the residuals
+acfts(mod3$residuals,"Residuals")
+# Independant (significant lag are far away)
+```
+
+The residuals are independent. Indeed significant lag are far away from the origin.
+
+The next step is to check for volatility
+```{r volatility mod3,echo=FALSE,eval=TRUE}
+# Volatility
+acfts(mod3$residuals,"Residuals²")
+# No volatility
+```
+
+There is no volatility because the lags from the ACF and PACF of the squared residuals are not outside the confidence bounds, or far away from origin.
+
+The last step is to perform a white noise test
+```{r wn test mod3,echo=FALSE,eval=TRUE}
+# White noise test (above 0.05 => wn)
+ljungggplot(mod3)
+# Someissues at the end
+```
+We can see some problems at the end of the plot.
+
+### Model 4 $ARIMA(6,0,0)(3,1,5)_12$
+
+Now we perform the same complete analysis of residuals for the model4
+
+```{r var mod4,echo=FALSE,eval=TRUE}
+# Constant variance (homoscedasticity)
+resid <- residplot(mod4)
+scatter <- scatterggplot(mod4)
+grid.arrange(resid,scatter,ncol=2)
+# Some outliers but seem constant
+```
+
+The variance seems constant even if there are some outliers.
+
+```{r norm resid mod4,echo=FALSE,eval=TRUE}
+# Normal residuals
+qqggplot(mod4)
+# Almost ok
+
+hist(mod4$residuals,breaks=20,freq=F)
+curve(dnorm(x,mean=0,sd=sd(mod4$residuals)),col=2,add=T)
+# Seem normal
+
+```
+
+The residuals seem normal, the tails are not heavy and the curve quite match the histogram.
+
+
+```{r indep resid mod4,echo=FALSE,eval=TRUE}
+# Independance of the residuals
+acfts(mod4$residuals,"Residuals")
+# Independant
+```
+
+The residuals are independent, there is no significant lag even far from the origin.
+
+```{r volatility mod4,echo=FALSE,eval=TRUE}
+
+# Volatility
+acfts(mod4$residuals,"Residuals²")
+# No volatility
+```
+
+There is no volatility as there is no significant lag in this plot of ACF and PACF of squared residuals.
+
+```{r wn test mod4,echo=FALSE,eval=TRUE}
+# White noise test (above 0.05 => wn)
+ljungggplot(mod4)
+# OK
+```
+
+The test confirm that we have white noises in the model4.
+
+## b)
+
+To see if the model is stationary and invertible, we check is the roots of the polynoms of AR and MA part are greater than 1.
+
+### Model 3 $ARIMA(6,0,0)(3,1,2)_12$
+
+```{r stat and invert mod3,echo=FALSE,eval=TRUE}
+cat("\nModul of AR Characteristic polynomial Roots: ", 
+    Mod(polyroot(c(1,-mod3$model$phi))),"\n")
+cat("\nModul of MA Characteristic polynomial Roots: ",
+    Mod(polyroot(c(1,mod3$model$theta))),"\n")
+# Stationary and invertible
+```
+
+From those values we can conclude that the model 3 is stationary and invertible.
+
+### Model 4 $ARIMA(6,0,0)(3,1,5)_12$
+
+```{r}
+cat("\nModul of AR Characteristic polynomial Roots: ", 
+    Mod(polyroot(c(1,-mod4$model$phi))),"\n")
+cat("\nModul of MA Characteristic polynomial Roots: ",
+    Mod(polyroot(c(1,mod4$model$theta))),"\n")
+# Stationary and invertible
+
+```
+
+Also here the model 4 is stationary and invertible.
+
+
+## c)
+
+To check if the model is stable, we compare the coefficient of the serie and those from the serie without the 12 last observation.
+
+```{r stability ,echo=FALSE,eval=TRUE}
+ultim=c(2013,12)
+ipi <- window(ts(read.table("Data/IPI.dat"), start = 1990, freq = 12), start = 1995)
+
+ipi2 <- window(ipi,end=ultim)
+logipi2 <- log(ipi2)
+d12logipi2 <- diff(logipi2,12)
+d1d12logipi2 <- diff(d12logipi2,1)
+ipi2 <- d1d12logipi2
+# We look at the same serie without the last 12 observations.
+
+mod3bis <- arima(ipi2,order=c(6,0,0),seasonal=list(order=c(3,0,2),period=12))
+mod4bis <- arima(ipi2,order=c(6,0,0),seasonal=list(order=c(3,0,5),period=12))
+```
+
+### Model 3 $ARIMA(6,0,0)(3,1,2)_12$
+
+```{r stability mod3,echo=FALSE,eval=TRUE}
+mod3$coef
+mod3bis$coef
+# The modelis stable.
+```
+Note that _mod3bis_ stands for the serie without the 12 last observations. The coefficient are not different, we can conclude that the model 3 is stable
+
+### Model 4 $ARIMA(6,0,0)(3,1,5)_12$
+
+```{r stability mod4,echo=FALSE,eval=TRUE}
+mod4$coef
+mod4bis$coef
+# The modelis stable.
+```
+Also here the model 4 is stable.
