@@ -205,3 +205,30 @@ plotarmaroots <- function(object){
   
   grid.arrange(arplot,maplot,ncol=2,main="Inverse roots of the charasteristic polynomial")
 }
+
+
+# Plot of the predictions with the confidence interval --------------------
+
+tspredggplot <- function(ts,pred,upperb,lowerb,title=NULL){ # plot the time serie.
+  # ts must be a monthly times serie. A title can be add, must be character.
+  ts.data.frame <- data.frame(date=as.Date(as.yearmon(time(ipi))),as.matrix(ipi))
+  colnames(ts.data.frame) <- c("time","value")
+  pred.data.frame <- data.frame(date=as.Date(as.yearmon(time(pr3))),as.matrix(pr3))
+  colnames(pred.data.frame) <- c("time","pred")
+  upperb.data.frame <- data.frame(date=as.Date(as.yearmon(time(upperb))),as.matrix(upperb))
+  colnames(upperb.data.frame) <- c("time","upperb")
+  lowerb.data.frame <- data.frame(date=as.Date(as.yearmon(time(lowerb))),as.matrix(lowerb))
+  colnames(lowerb.data.frame) <- c("time","lowerb")
+  ts.data.frame <- tail(ts.data.frame,48)
+  pred.data.frame <- tail(pred.data.frame,48)
+  upperb.data.frame <- tail(upperb.data.frame,48)
+  lowerb.data.frame <- tail(lowerb.data.frame,48)
+  ggplot(data=ts.data.frame, mapping=aes(x=time, y=value))+geom_line() + 
+    geom_line(data=pred.data.frame, mapping=aes(x=time, y=pred),colour="red") + 
+    geom_line(data=upperb.data.frame, mapping=aes(x=time, y=upperb),colour="blue",
+              linetype="dashed") + 
+    geom_line(data=lowerb.data.frame, mapping=aes(x=time, y=lowerb),colour="blue",
+              linetype="dashed") + 
+    ggtitle(title) + theme(panel.grid.major.y=element_blank(),
+                           panel.grid.minor.y=element_blank())
+}

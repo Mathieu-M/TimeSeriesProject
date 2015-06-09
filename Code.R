@@ -240,36 +240,30 @@ mod4bis2$coef
 pdq <- c(6,1,0)
 PDQ <- c(1,1,2)
 
-pred <- predict(mod3bis2,n.ahead=12)
-pr <- ts(c(tail(logipi2,1),pred$pred),start=ultim,freq=12)
-se <- ts(c(0,pred$se),start=ultim,freq=12)
+pred3 <- predict(mod3bis2,n.ahead=12)
+pr3 <- ts(c(tail(logipi2,1),pred$pred),start=ultim,freq=12)
+se3 <- ts(c(0,pred$se),start=ultim,freq=12)
 
-tl <- ts(exp(pr-1.96*se),start=ultim,freq=12)
-tu <- ts(exp(pr+1.96*se),start=ultim,freq=12)
+tl3 <- ts(exp(pr-1.96*se),start=ultim,freq=12)
+tu3 <- ts(exp(pr+1.96*se),start=ultim,freq=12)
 pr3 <- ts(exp(pr),start=ultim,freq=12)
 
-ts.plot(ipi,tl,tu,pr3,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=c(2010,2015),type="o",
-        main=paste("Model ARIMA(",paste(pdq,collapse=","),")
-                   (",paste(PDQ,collapse=","),")12",sep=""))
-abline(v=2007+0:8,lty=3,col=4)
+tspredggplot(ipi,pred=pr3,upperb=tu3,lowerb=tl3,title="Predictions for model 3.")
 
 # Prediction for model 4.
 
 pdq <- c(6,1,0)
 PDQ <- c(3,1,5)
 
-pred <- predict(mod4bis2,n.ahead=12)
-pr <- ts(c(tail(logipi2,1),pred$pred),start=ultim,freq=12)
-se <- ts(c(0,pred$se),start=ultim,freq=12)
+pred4 <- predict(mod4bis2,n.ahead=12)
+pr4 <- ts(c(tail(logipi2,1),pred$pred),start=ultim,freq=12)
+se4 <- ts(c(0,pred$se),start=ultim,freq=12)
 
-tl <- ts(exp(pr-1.96*se),start=ultim,freq=12)
-tu <- ts(exp(pr+1.96*se),start=ultim,freq=12)
+tl4 <- ts(exp(pr-1.96*se),start=ultim,freq=12)
+tu4 <- ts(exp(pr+1.96*se),start=ultim,freq=12)
 pr4 <- ts(exp(pr),start=ultim,freq=12)
 
-ts.plot(ipi,tl,tu,pr4,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=c(2010,2015),type="o",
-        main=paste("Model ARIMA(",paste(pdq,collapse=","),")
-                   (",paste(PDQ,collapse=","),")12",sep=""))
-abline(v=2007+0:8,lty=3,col=4)
+tspredggplot(ipi,pred=pr4,upperb=tu4,lowerb=tl4,title="Predictions for model 4.")
 
 ## Question d
 
@@ -305,7 +299,4 @@ tl1<-ts(exp(pr-1.96*se),start=ultim+c(1,0),freq=12)
 tu1<-ts(exp(pr+1.96*se),start=ultim+c(1,0),freq=12)
 pr1<-ts(exp(pr),start=ultim+c(1,0),freq=12)
 
-ts.plot(ipi,tl1,tu1,pr1,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=c(2010,2016),type="o",
-        main=paste("Model ARIMA(",paste(pdq,collapse=","),")
-                   (",paste(PDQ,collapse=","),")12",sep=""))
-abline(v=2009+0:7,lty=3,col=4)
+tspredggplot(ipi,pred=pr1,upperb=tu1,lowerb=tl1,title="Predictions for model 3.")
