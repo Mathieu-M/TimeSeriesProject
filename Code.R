@@ -109,6 +109,24 @@ acfts(ipi.t)
 acfmodel(mod4bis)
 # Really good for ACF and PACF, better than the previous one.
 
+# We can to take out the non-significant parameters to see if it improves the model. 
+# (estimates/se<2). We will do such a analysis on model 3 and 4 since they seem to 
+# be the best.
+
+mod3bis.adjusted <- arima(logipi,order=c(6,1,0),seasonal=list(order=c(1,1,2),period=12),
+                          fixed=c(NA,NA,0,0,NA,NA,NA,0,NA)) 
+# After several test this model is better (aic smaller). Is it still a good fit?
+
+acfts(ipi.t)
+acfmodel(mod3bis.adjusted)
+# We keep this model as the new mod3bis.
+
+mod3bis <- mod3bis.adjusted
+
+mod4bis.adjusted <- arima(logipi,order=c(6,1,0),seasonal=list(order=c(3,1,5),period=12),
+                          fixed=c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,0,NA,NA)) 
+# The aic is better with all the parameters.
+
 # We will perform the residuals analysis on the models 3 and 4.
 
 
@@ -198,46 +216,29 @@ length(Mod(polyroot(c(1,mod4$model$theta)))[Mod(polyroot(c(1,mod4$model$theta)))
 
 # Stability
 
+# We look at the same serie without the last 12 observations.
 ultim=c(2013,12)
 
 ipi2 <- window(ipi,end=ultim)
 logipi2 <- log(ipi2)
-# We look at the same serie without the last 12 observations.
 
-mod3bis2 <- arima(logipi2,order=c(6,1,0),seasonal=list(order=c(3,1,2),period=12))
+# Model 3 and 4 for the truncated serie.
+mod3bis2 <- arima(logipi2,order=pdq,seasonal=list(order=PDQ,period=12),
+                  fixed=c(NA,NA,0,0,NA,NA,NA,0,NA))
 mod4bis2 <- arima(logipi2,order=c(6,1,0),seasonal=list(order=c(3,1,5),period=12))
 
 mod3bis$coef
 mod3bis2$coef
-# The model is stable.
+# The model 3 is stable.
 
 mod4bis$coef
 mod4bis2$coef
-# The model is stable
-
-# We can to take out the non-significant parameters to see if it improves the model. (estimates/se<2)
-
-mod3bis.adjusted <- arima(logipi,order=c(6,1,0),seasonal=list(order=c(1,1,2),period=12),
-                     fixed=c(NA,NA,0,0,NA,NA,NA,0,NA)) 
-# After several test this model is better (aic smaller). Is it still a good fit?
-
-acfts(ipi.t)
-acfmodel(mod3bis.adjusted)
-# We keep this model as the new mod3bis.
-
-mod3bis <- mod3bis.adjusted
-
-mod4bis.adjusted <- arima(logipi,order=c(6,1,0),seasonal=list(order=c(3,1,5),period=12),
-                     fixed=c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,0,NA,NA)) 
-# The aic is better with all the parameters.
+# The model 4 is stable
 
 # Prediction for model 3.
 
 pdq <- c(6,1,0)
 PDQ <- c(1,1,2)
-
-mod3bis2 <- arima(logipi2,order=pdq,seasonal=list(order=PDQ,period=12),
-                  fixed=c(NA,NA,0,0,NA,NA,NA,0,NA))
 
 pred <- predict(mod3bis2,n.ahead=12)
 pr <- ts(c(tail(logipi2,1),pred$pred),start=ultim,freq=12)
@@ -245,9 +246,9 @@ se <- ts(c(0,pred$se),start=ultim,freq=12)
 
 tl <- ts(exp(pr-1.96*se),start=ultim,freq=12)
 tu <- ts(exp(pr+1.96*se),start=ultim,freq=12)
-pr <- ts(exp(pr),start=ultim,freq=12)
+pr3 <- ts(exp(pr),start=ultim,freq=12)
 
-ts.plot(ipi,tl,tu,pr,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=c(2010,2015),type="o",
+ts.plot(ipi,tl,tu,pr3,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=c(2010,2015),type="o",
         main=paste("Model ARIMA(",paste(pdq,collapse=","),")
                    (",paste(PDQ,collapse=","),")12",sep=""))
 abline(v=2007+0:8,lty=3,col=4)
@@ -263,9 +264,48 @@ se <- ts(c(0,pred$se),start=ultim,freq=12)
 
 tl <- ts(exp(pr-1.96*se),start=ultim,freq=12)
 tu <- ts(exp(pr+1.96*se),start=ultim,freq=12)
-pr <- ts(exp(pr),start=ultim,freq=12)
+pr4 <- ts(exp(pr),start=ultim,freq=12)
 
-ts.plot(ipi,tl,tu,pr,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=c(2010,2015),type="o",
+ts.plot(ipi,tl,tu,pr4,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=c(2010,2015),type="o",
         main=paste("Model ARIMA(",paste(pdq,collapse=","),")
                    (",paste(PDQ,collapse=","),")12",sep=""))
 abline(v=2007+0:8,lty=3,col=4)
+
+## Question d
+
+obs <- window(ipi,start=ultim)
+
+mod3bis2.EQM <- sqrt(sum(((obs-pr3)/obs)^2)/12)
+mod3bis2.EAM <- sum(abs(obs-pr3)/obs)/12
+
+mod4bis2.EQM <- sqrt(sum(((obs-pr4)/obs)^2)/12)
+mod4bis2.EAM <- sum(abs(obs-pr4)/obs)/12
+
+mod3bis2.EQM-mod4bis2.EQM>0
+mod3bis2.EAM-mod4bis2.EAM>0
+
+# Model 3 is better based on these two indicators.
+
+
+# Predictions -------------------------------------------------------------
+
+# We know work with the entire serie and only the model 3. 
+
+ipi1 <- window(ipi,end=ultim+c(1,0))
+logipi1 <- log(ipi1)
+
+pdq <- c(6,1,0)
+PDQ <- c(1,1,2)
+
+pred <- predict(mod3bis,n.ahead=12)
+pr <- ts(c(tail(logipi1,1),pred$pred),start=ultim+c(1,0),freq=12)
+se <- ts(c(0,pred$se),start=ultim+c(1,0),freq=12)
+
+tl1<-ts(exp(pr-1.96*se),start=ultim+c(1,0),freq=12)
+tu1<-ts(exp(pr+1.96*se),start=ultim+c(1,0),freq=12)
+pr1<-ts(exp(pr),start=ultim+c(1,0),freq=12)
+
+ts.plot(ipi,tl1,tu1,pr1,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=c(2010,2016),type="o",
+        main=paste("Model ARIMA(",paste(pdq,collapse=","),")
+                   (",paste(PDQ,collapse=","),")12",sep=""))
+abline(v=2009+0:7,lty=3,col=4)
