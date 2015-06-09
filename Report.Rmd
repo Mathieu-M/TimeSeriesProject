@@ -1,6 +1,6 @@
 ---
 title: "Time Series - Project"
-author: "Mathieu Marauri"
+author: "Mathieu Marauri and Maxime Jurado"
 output:
   pdf_document:
     fig_caption: yes
@@ -117,7 +117,7 @@ IPI & 255.5872 \\
 
 The last serie is selected. It is the serie with a log transformation and two differentiation. One for the seasonality and one to have a constant mean. The serie can be written $(1-B)(1-B^12)log(IPI)$.
 
-For now on the transformed serie will be referred simply as teh serie.
+For now on the transformed serie will be referred simply as the serie.
 
 ## Question b
 
@@ -127,7 +127,7 @@ In order to identify some possible models, the Auto-Correlation Function and the
 acfts(ipi)
 ```
 
-The red lags are used to identify the seasonal part. One can consider an ARMA(3,2) or an ARMA(3,5) looking for the last significant lag. The ACF gives the MA part nd the PACF the AR part. For the regular part, an AR(2) or an AR(6) can be choosen.
+The red lags are used to identify the seasonal part. One can consider an ARMA(3,2) or an ARMA(3,5) looking for the last significant lag. The ACF gives the MA part and the PACF the AR part. For the regular part, an AR(2) or an AR(6) can be choose.
 
 Finally 4 models are possible:
 
@@ -158,13 +158,13 @@ acfts(ipi.t)
 acfmodel(mod3bis)
 ```
 
-By comparing the red lags, the one for the seasonality, it appears that the model and the serie have the same signifiant lag with the same sign. The same is true for the first 12 lags that correspond to the regular part. One can conclude that model 3 is a good representation of the serie. 
+By comparing the red lags, the one for the seasonality, it appears that the model and the serie have the same significant lag with the same sign. The same is true for the first 12 lags that correspond to the regular part. One can conclude that model 3 is a good representation of the serie. 
 
-Such similitudes were also observed for the model 4. Not so much for the models 1 and 2.
+Such similitude were also observed for the model 4. Not so much for the models 1 and 2.
 
 Therefore the complete analysis of residuals will be performed only on model 3 and 4.
 
-After performing this analysis the models 3 and 4 were adjusted based on the significance of each coefficient. The unsignificant coefficients were removed and the models were compared using the AIC. The model 4 did not change but the model 3 did. The coefficients for the ar3, ar4 and sma1 were fixed to 0 and the new model was an $ARIMA(6,1,0)(1,1,2)_{12}$ for the logarithm of the serie.
+After performing this analysis the models 3 and 4 were adjusted based on the significance of each coefficient. The non-significant coefficients were removed and the models were compared using the AIC. The model 4 did not change but the model 3 did. The coefficients for the ar3, ar4 and sma1 were fixed to 0 and the new model was an $ARIMA(6,1,0)(1,1,2)_{12}$ for the logarithm of the serie.
 
 # Validation
 
@@ -174,7 +174,7 @@ The analysis of the residuals is a way to validate the model. The residuals must
 
 * They have the same variance. Homoscedasticity.
 * They must follow a normal distribution.
-* They have to be independant.
+* They have to be independent.
 
 These hypotheses will be assessed graphically. 
 
@@ -189,7 +189,7 @@ scatter <- scatterggplot(mod3bis)
 grid.arrange(resid,scatter,ncol=2)
 ```
 
-Residuals do not go far outside the confidence bounds except for some values (outliers?). The scatter plot does not show any tendancy even if the smooth is not completely straight. The homoscedasticity is verified.
+Residuals do not go far outside the confidence bounds except for some values (outliers?). The scatter plot does not show any tendency even if the smooth is not completely straight. The homoscedasticity is verified.
 
 Now the normality of the residuals is to be checked. To do so a qqplot and the histogram of the residuals along with the density of a normal are plotted. Figure \ref{norm3} 
 ```{r norm3,fig.pos="H",fig.align='left',fig.cap="QQ-plot and histogram of the residuals. \\label{norm3}"}
@@ -249,6 +249,8 @@ logipi2 <- log(ipi2)
 d12logipi2 <- diff(logipi2,12)
 d1d12logipi2 <- diff(d12logipi2,1)
 ipi2 <- d1d12logipi2
+pdq<-c(6,1,0)
+PDQ<-c(1,1,2)
 mod3bis2 <- arima(logipi2,order=pdq,seasonal=list(order=PDQ,period=12),fixed=c(NA,NA,0,0,NA,NA,NA,0,NA))
 coef3 <- data.frame(mod3bis$coef,mod3bis2$coef)
 colnames(coef3) <- c("Complete model","Truncate model")
@@ -304,7 +306,7 @@ The model 3 has lower values than model 4. Therefore even if model 4 is better t
 
 Since model 3 is better for predictions (see section \nameref{Questiond}) the long term forecasts will be done with this model. 
 
-Figure \ref{perdl3} displays the predicted values for the serie for the year 2015 along with the confidnce interval. 
+Figure \ref{perdl3} displays the predicted values for the serie for the year 2015 along with the confidence interval. 
 ```{r predl3,fig.pos="H",fig.align='left',fig.cap="Predictions and confidence interval for the  model 3. \\label{predl3}"}
 ipi1 <- window(ipi,end=ultim+c(1,0))
 logipi1 <- log(ipi1)
@@ -321,7 +323,7 @@ tspredggplot(ipi1,pred=pr1,upperb=tu1,lowerb=tl1)
 
 ## Question a
 
-In this section outliers are analized. For that an automatic detection of the outliers is applied. Table 3 presents the results.
+In this section outliers are analyzed. For that an automatic detection of the outliers is applied. Table 3 presents the results.
 
 \begin{table}[ht]
 \centering
@@ -347,18 +349,19 @@ Observations & Kind & Date & Evolution \\
 
 Note that _AO_ stands for additive outlier and _LS_ for level shift. Additive outliers means that it only affects one point. Instead of observing the predicted point on the linearized serie we observe another point. In level shift there is a break in the serie that is not corrected. The effect is permanent. 
 
-We can see that most of the additive outliers are in April, it is maybe due to the years with easter in March instead of April.
+We can see that most of the additive outliers are in April, it is maybe due to the years with Easter in March instead of April.
 
 2 level shift can be observed in 2008. They are probably due to the financial crisis since the shift is negative.
 
-The last level shift is in July 2009 and has a positive effect. It may be explain by the recovery of the spanish production.
+The last level shift is in July 2009 and has a positive effect. It may be explain by the recovery of the Spanish production.
 
 ## Question b
 
-Before comparing the predictions of the linearized serie versus the serie the wo serie can be compared and a model must be fitted on the linear serie. 
+Before comparing the predictions of the linearized serie versus the serie the whole serie can be compared and a model must be fitted on the linear serie. 
 
 Figure \ref{obsvslin} shows the two series plotted on the same graph.
 ```{r obsvslin,fig.pos="H",fig.align='left',fig.cap="Observed vs linearized serie. The linearized serie is in red. \\label{obsvslin}"}
+mod.atip3=outdetec(mod3bis,dif=c(1,12),crit=2.6,LS=T)
 logipi.lin=lineal(logipi,mod.atip3$atip)
 ipi.lin=exp(logipi.lin)
 ts.data.frame <- data.frame(date=as.Date(as.yearmon(time(ipi))),as.matrix(ipi))
@@ -366,8 +369,8 @@ colnames(ts.data.frame) <- c("time","value")
 tsl.data.frame <- data.frame(date=as.Date(as.yearmon(time(ipi.lin))),as.matrix(ipi.lin))
 colnames(tsl.data.frame) <- c("time","valuel")
 ggplot(data=ts.data.frame, mapping=aes(x=time, y=value)) + geom_line() + 
-  geom_line(data=tsl.data.frame,aes(x=time,y=valuel),colour="red")
-  ggtitle(title) + theme(panel.grid.major.y=element_blank(),
+  geom_line(data=tsl.data.frame,aes(x=time,y=valuel),colour="red") + 
+   theme(panel.grid.major.y=element_blank(),
                          panel.grid.minor.y=element_blank()) + ylab("Values of the serie")
 ```
 
@@ -378,18 +381,19 @@ In the following graph the effects of the outliers on the serie of the logarithm
 tsggplot(logipi-logipi.lin)
 ```
 
-One can clearly see the different Additive Outliers (only a pick), the Transitive Change for the yeaar 2000 and the several Level Shifts after 2008.
+One can clearly see the different Additive Outliers (only a pick), the Transitive Change for the year 2000 and the several Level Shifts after 2008.
 
 In order to fit a model on the linearized serie the ACF and PACF are plotted in Figure \ref{acflin}. They are done on the two times differentiated serie of the logarithm.
 ```{r ACF PACF lin,fig.pos="H",fig.align='left',fig.cap="ACF and PACF of the linearized serie. \\label{acflin}"}
+d1d12logipi.lin<-diff(diff(logipi.lin,12))
 acfts(d1d12logipi.lin)
 ```
 
 After validation, we decided to choose an $ARIMA(6,1,0)(1,1,2)_12$
  
-As it was done before the truncated serie is used to get predicion. This way a comparison with the predictions of the model 3 fot the all serie is possible. 
+As it was done before the truncated serie is used to get prediction. This way a comparison with the predictions of the model 3 for the all serie is possible. 
 
-Figure \ref{predlin} shows the predictionsa and the confidence interval obtained with the linearized model.
+Figure \ref{predlin} shows the predictions and the confidence interval obtained with the linearized model.
 ```{r Predictions for model lineal,fig.pos="H",fig.align='left',fig.cap="Predictions and confidence interval obtained with the linearized truncated model. \\label{predlin}"}
 mod3bis.lin <- arima(logipi,order=c(6,1,0),seasonal=list(order=c(1,1,2),period=12),fixed=c(NA,NA,0,0,NA,NA,NA,0,NA))
 ultim <- c(2013,12)
@@ -407,7 +411,7 @@ pr1<-ts(exp(pr),start=ultim,freq=12)
 tspredggplot(ipi1,pred=pr1,upperb=tu1,lowerb=tl1)
 ```
 
-One can notice that the observed values are always in the confidene interval (except at the beginning). 
+One can notice that the observed values are always in the confidence interval (except at the beginning). 
 
 To have a clear comparison, one can compute the Mean Square Prediction Error and the Mean Square Absolute Prediction Error. To compare the predictions of each model the values of these indicators are compared. As it was done previously small values are preferred.
 
@@ -449,7 +453,7 @@ acfmodel(mod2bis)
 
 ### Model 3: $ARIMA(6,0,0)(3,1,2)_12$
 
-```{r mod3,fig.pos="H",fig.align='left',fig.cap="ACF and PACF of the serie and the model 3."}
+```{r mod3 apendix,fig.pos="H",fig.align='left',fig.cap="ACF and PACF of the serie and the model 3."}
 acfts(ipi.t)
 acfmodel(mod3bis)
 ```
@@ -457,7 +461,7 @@ acfmodel(mod3bis)
 
 ### Model 4: $ARIMA(6,0,0)(3,1,5)_12$
 
-```{r mod4,fig.pos="H",fig.align='left',fig.cap="ACF and PACF of the serie and the model 4."}
+```{r mod4 appendix,fig.pos="H",fig.align='left',fig.cap="ACF and PACF of the serie and the model 4."}
 acfts(ipi.t)
 acfmodel(mod4bis)
 ```
@@ -489,6 +493,6 @@ acfts(mod4bis$residuals)
 ```
 
 
-```{r ljung4,fig.pos="H",fig.align='left',fig.cap="P-values of the Ljung-Box tests. \\label{ljung4}"}
+```{r ljung4 appendix,fig.pos="H",fig.align='left',fig.cap="P-values of the Ljung-Box tests. \\label{ljung4}"}
 ljungggplot(mod4bis)
 ```
