@@ -227,43 +227,45 @@ acfmodel(mod3bis.adjusted)
 
 mod3bis <- mod3bis.adjusted
 
-ar3,4,sma3
 mod4bis.adjusted <- arima(logipi,order=c(6,1,0),seasonal=list(order=c(3,1,5),period=12),
-                     fixed=c(NA,NA,NA,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA)) 
+                     fixed=c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,0,NA,NA)) 
 # The aic is better with all the parameters.
 
 # Prediction for model 3.
 
 pdq <- c(6,1,0)
-PDQ <- c(3,1,2)
+PDQ <- c(1,1,2)
 
-mod3bis <- arima(logipi2,order=pdq,seasonal=list(order=PDQ,period=12))
+mod3bis2 <- arima(logipi2,order=pdq,seasonal=list(order=PDQ,period=12),
+                  fixed=c(NA,NA,0,0,NA,NA,NA,0,NA))
 
-pred <- predict(mod3bis,n.ahead=12)
-
-pr <- window(diffinv(pred$pred,12,xi=window(ipi,start=ultim+c(-1,1),end=ultim+c(0,0))),start=ultim)
-model <- mod3bis$model
-varZ <- mod3bis$sigma
-ma <- ARMAtoMA(ar=mod3bis$phi,ma=mod3bis$theta,lag.max=11)
-ar <- ARMAtoMA(ar=mod3bis$theta,ma=mod3bis$phi,lag.max=11)
-se <- c(0,sqrt((cumsum(c(1,ma,ar))^2)*varZ))
-
-tl<-ts(pr-1.96*se,start=ultim,freq=12)
-tu<-ts(pr+1.96*se,start=ultim,freq=12)
-pr<-ts(pr,start=ultim,freq=12)
-
-ts.plot(ipi,tl,tu,pr,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=c(2011,2015),type="o",main=paste("Model ARIMA(",paste(pdq,collapse=","),")(",paste(PDQ,collapse=","),")12",sep=""))
-abline(v=2010+0:5,lty=3,col=4)
-
-pred <- predict(mod3bis,n.ahead=12)
-pr <- ts(c(tail(d1d12logipi2,1),pred$pred),start=ultim,freq=12)
+pred <- predict(mod3bis2,n.ahead=12)
+pr <- ts(c(tail(logipi2,1),pred$pred),start=ultim,freq=12)
 se <- ts(c(0,pred$se),start=ultim,freq=12)
 
-#Intervals
 tl <- ts(exp(pr-1.96*se),start=ultim,freq=12)
 tu <- ts(exp(pr+1.96*se),start=ultim,freq=12)
 pr <- ts(exp(pr),start=ultim,freq=12)
 
+ts.plot(ipi,tl,tu,pr,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=c(2010,2015),type="o",
+        main=paste("Model ARIMA(",paste(pdq,collapse=","),")
+                   (",paste(PDQ,collapse=","),")12",sep=""))
+abline(v=2007+0:8,lty=3,col=4)
 
-ts.plot(d1d12logipi,tl,tu,pr,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=c(2010,2015),type="o",main=paste("Model ARIMA(",paste(pdq,collapse=","),")(",paste(PDQ,collapse=","),")12",sep=""))
+# Prediction for model 4.
+
+pdq <- c(6,1,0)
+PDQ <- c(3,1,5)
+
+pred <- predict(mod4bis2,n.ahead=12)
+pr <- ts(c(tail(logipi2,1),pred$pred),start=ultim,freq=12)
+se <- ts(c(0,pred$se),start=ultim,freq=12)
+
+tl <- ts(exp(pr-1.96*se),start=ultim,freq=12)
+tu <- ts(exp(pr+1.96*se),start=ultim,freq=12)
+pr <- ts(exp(pr),start=ultim,freq=12)
+
+ts.plot(ipi,tl,tu,pr,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=c(2010,2015),type="o",
+        main=paste("Model ARIMA(",paste(pdq,collapse=","),")
+                   (",paste(PDQ,collapse=","),")12",sep=""))
 abline(v=2007+0:8,lty=3,col=4)
