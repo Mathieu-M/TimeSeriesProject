@@ -122,7 +122,7 @@ scatterggplot <- function(model){
   colnames(linh) <- c("pred","lpars","col")
   ggplot() + geom_point(data=x1, aes(x=x, y=y)) +  
     geom_line(data=linh,aes(x=pred,y=lpars),colour="red") + ylab(expression(sqrt(abs(residuals)))) + xlab("") + 
-    ggtitle("Satter-plot with smooth")
+    ggtitle("Scatter-plot with smooth")
 }
 
 # Ljung-Box test plot
