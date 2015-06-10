@@ -4,7 +4,7 @@ author: "Mathieu Marauri and Maxime Jurado"
 output:
   pdf_document:
     fig_caption: yes
-    keep_tex: no
+    keep_tex: yes
     number_sections: no
     toc: yes
 header-includes: \usepackage{float}
@@ -29,6 +29,7 @@ options("xtable.table.placement" = "H")
 ipi <- window(ts(read.table("Data/IPI.dat"), start = 1990, freq = 12), start = 1995)
 ```
 
+\newpage
 
 # Introduction
 For this project we decided to work on the IPI serie. It is a monthly index of industrial production in Spain. The aim of this study is to fit a model to the serie in order to make previsions. During this analysis the outliers will be studied, if some exist, in order to adjust the model fitted.
@@ -76,7 +77,7 @@ boxplot(logipi~floor(time(logipi)))
 ```
 
 Now that the serie has been transformed so that it has a constant mean, one has to check if there is seasonal pattern. The following plot (Figure \ref{monthplot}) helps find a potential one.
-```{r monthplot,fig.pos="H",fig.align='left',fig.cap="Monthplot of log(ipi). \\label{monthplot}"}
+```{r monthplot,fig.pos="H",fig.align='left',fig.cap="Decomposition of log(ipi). \\label{monthplot}"}
 plot(decompose(logipi))
 ```
 
@@ -136,6 +137,8 @@ Finally 4 models are possible:
 * Model 3: $ARIMA(6,0,0)(3,1,2)_12$ 
 * Model 4: $ARIMA(6,0,0)(3,1,5)_12$ 
 
+\newpage
+
 # Estimation
 
 ```{r models}
@@ -166,6 +169,8 @@ Therefore the complete analysis of residuals will be performed only on model 3 a
 
 After performing this analysis the models 3 and 4 were adjusted based on the significance of each coefficient. The non-significant coefficients were removed and the models were compared using the AIC. The model 4 did not change but the model 3 did. The coefficients for the ar3, ar4 and sma1 were fixed to 0 and the new model was an $ARIMA(6,1,0)(1,1,2)_{12}$ for the logarithm of the serie.
 
+\newpage
+
 # Validation
 
 ## Question a
@@ -194,7 +199,7 @@ Residuals do not go far outside the confidence bounds except for some values (ou
 Now the normality of the residuals is to be checked. To do so a qqplot and the histogram of the residuals along with the density of a normal are plotted. Figure \ref{norm3} 
 ```{r norm3,fig.pos="H",fig.align='left',fig.cap="QQ-plot and histogram of the residuals. \\label{norm3}"}
 qqggplot(mod3bis)
-hist(mod3bis$residuals,breaks=20,freq=F)
+hist(mod3bis$residuals,breaks=20,freq=F,main="")
 curve(dnorm(x,mean=0,sd=sd(mod3bis$residuals)),col=2,add=T)
 ```
 
@@ -302,6 +307,8 @@ In order to compare the model for the prediction the Mean Square Prediction Erro
 
 The model 3 has lower values than model 4. Therefore even if model 4 is better to describe the serie, model 3 is better for the forecast.
 
+\newpage
+
 # Predictions
 
 Since model 3 is better for predictions (see section \nameref{Questiond}) the long term forecasts will be done with this model. 
@@ -318,6 +325,8 @@ tu1<-ts(exp(pr+1.96*se),start=ultim+c(1,0),freq=12)
 pr1<-ts(exp(pr),start=ultim+c(1,0),freq=12)
 tspredggplot(ipi1,pred=pr1,upperb=tu1,lowerb=tl1)
 ```
+
+\newpage
 
 # Outliers treatment
 
@@ -394,7 +403,7 @@ After validation, we decided to choose an $ARIMA(6,1,0)(1,1,2)_12$. The residual
 As it was done before the truncated serie is used to get prediction. This way a comparison with the predictions of the model 3 for the all serie is possible. 
 
 Figure \ref{predlin} shows the predictions and the confidence interval obtained with the linearized model.
-```{r Predictions for model lineal,fig.pos="H",fig.align='left',fig.cap="Predictions and confidence interval obtained with the linearized truncated model. \\label{predlin}"}
+```{r predlin,fig.pos="H",fig.align='left',fig.cap="Predictions and confidence interval obtained with the linearized truncated model. \\label{predlin}"}
 mod3bis.lin <- arima(logipi,order=c(6,1,0),seasonal=list(order=c(1,1,2),period=12),fixed=c(NA,NA,0,0,NA,NA,NA,0,NA))
 ultim <- c(2013,12)
 pdq <- c(6,1,0)
@@ -527,6 +536,8 @@ acfts(mod3bis.lin$residuals)
 ```{r ljunglin appendix,fig.pos="H",fig.cap="P-values of the Ljung-Box tests."}
 ljungggplot(mod3bis.lin)
 ```
+
+\newpage
 
 ## R code
 
